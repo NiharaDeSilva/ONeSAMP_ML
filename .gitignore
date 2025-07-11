@@ -1,0 +1,5 @@
+# Ignore output directories
+output/
+
+# Ignore log files
+serial*
