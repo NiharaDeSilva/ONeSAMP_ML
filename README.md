@@ -24,16 +24,16 @@ It is strongly recommended that users read the accompanying manuscript before ap
 # Getting Started
 1. Make a new ONeSAMP directory
 
-        mkdir ONeSAMP
-        cd ONeSAMP
+        mkdir ONeSAMP_ML
+        cd ONeSAMP_ML
 2. Clone the repository
 
-        git clone git@github.com:AaronHong1024/OneSamp.git
+        git clone [https://github.com/NiharaDeSilva/ONeSAMP_ML.git]
 3. Give the Permission to the ONeSAMP file under the build directory
 
         chmod 777 build/OneSamp
 
-# Running ONeSAMP
+# Running ONeSAMP_ML
 
 usage: python main [--s number of trails] [--o input]
 ```
@@ -64,8 +64,8 @@ Run the program
 
 If you have any issues or anyquestions, please feel free to contact us at suhashidesilva@ufl.edu or through the GitHub Issues.
 
-# Citing ONeSAMP
-If you use the ONeSAMP in your research project, please cite: 
+# Citing ONeSAMP_ML
+If you use the ONeSAMP_ML in your research project, please cite: 
 
 
 
