@@ -8,11 +8,11 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
-import XGBRegressor
+from xgboost import XGBRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.utils import resample  
 from statistics import statisticsClass
-from predict import predict_and_evaluate_rf, predict_and_evaluate_xgboost, predict_and_evaluate_lasso, predict_and_evaluate_ridge
+from models.predict import predict_and_evaluate_rf, predict_and_evaluate_xgb, predict_and_evaluate_lasso, predict_and_evaluate_ridge
 
 
 inputFileStatistics = statisticsClass()
@@ -153,7 +153,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
         print("\n------------- RANDOM FOREST -------------")
         start = time.time()
         model = train_random_forest(X_train_scaled, y_train, rf_path=rf_path)
-        predict_and_evaluate_rf(model, X_test_scaled, y_test, Z, scaler)
+        predict_and_evaluate_rf(model, X_test_scaled, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
         return model
 
@@ -162,7 +162,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
         start = time.time()
         model = train_xgboost(X_train_scaled, y_train, xgb_path=xgb_path)
         model_lower, model_upper = train_xgboost_quantile(X_train_scaled, y_train, model_lower_path, model_upper_path, quantile_alpha=0.05)
-        predict_and_evaluate_xgboost(model, X_test_scaled, y_test, Z_scaled, model_lower, model_upper)
+        predict_and_evaluate_xgb(model, X_test_scaled, y_test, Z_scaled, model_lower, model_upper)
         print(f"Time taken: {time.time() - start:.2f} seconds")
         return model, model_lower, model_upper
 

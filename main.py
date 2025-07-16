@@ -305,7 +305,7 @@ except FileNotFoundError:
 
 simulation_time = time.time()
 
-print("----- Simulation time %s seconds -----" % (time.time() - start_time))
+print("-----Population simulation time %s seconds -----" % (time.time() - start_time))
 
 
 

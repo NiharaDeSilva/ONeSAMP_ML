@@ -1,10 +1,11 @@
 #!/bin/bash
+#SBATCH --account=jaime.ruiz
 #SBATCH --job-name=oneSamp    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=suhashidesilva@ufl.edu     # Where to send mail
 #SBATCH --ntasks=1		      # Number of tasks
-#SBATCH --cpus-per-task=16	      # Number of cores per task
-#SBATCH --mem=80gb                     # Job memory request
+#SBATCH --cpus-per-task=4	      # Number of cores per task
+#SBATCH --mem=20gb                     # Job memory request
 #SBATCH --time=240:00:00               # Time limit hrs:min:sec
 #SBATCH --output=serial_test_%j.log   # Standard output and error log
 
@@ -33,7 +34,7 @@ for file in "$folder"/*; do
         filename=$(basename -- "$file")
         filename_no_extension="${filename%.*}"
         output_file="$output/${filename_no_extension}"
-        python /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/main.py --s 20 --o "$file" > "$output_file"
+        python /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/main.py --s 100 --o "$file" > "$output_file"
         echo "Processed $file and saved output to $output_file"
     fi
 done

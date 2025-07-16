@@ -4,8 +4,8 @@ import joblib
 import os
 import time
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
-from sklearn.model_selection import cross_val_score, make_scorer
-import resample
+from sklearn.model_selection import cross_val_score
+from sklearn.utils import resample
 
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
 
@@ -64,10 +64,7 @@ def get_feature_importance(rf_model, feature_names):
 # XGBoost
 # -----------------------------------
 
-def predict_xgboost(
-    model, Z_scaled,
-    model_lower=None, model_upper=None
-):
+def predict_xgboost(model, Z_scaled, model_lower, model_upper):
 
     booster = model.get_booster()
     num_rounds = booster.num_boosted_rounds()
@@ -140,13 +137,13 @@ def predict_with_stats(model, X_train, y_train, new_sample, n_bootstrap=1000, al
         'median': np.median(predictions),
         'min': np.min(predictions),
         'max': np.max(predictions),
-        '95% CI': (lower, upper)
+        'lower_95ci': lower,
+        'upper_95ci': upper
     }
 
 def print_stats_inline(name, stats):
     print(f"{name} => Mean: {stats['mean']:.4f}, Median: {stats['median']:.4f}, "
-          f"Min: {stats['min']:.4f}, Max: {stats['max']:.4f}, "
-          f"95% CI: ({stats['95% CI'][0]:.4f}, {stats['95% CI'][1]:.4f})")
+          f"95% CI: ({stats['lower_95ci']:.4f}, {stats['upper_95ci']:.4f})")
 
 
 def get_coeficients_reg_models(model_coef, feature_names):
@@ -175,11 +172,12 @@ def predict_and_evaluate_rf(model, X_test, y_test, Z_scaled):
     metrics = evaluate_random_forest(model, X_test, y_test)
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
     print_stats_inline("RF Prediction Stats", predictions)
+    print("\nFeature importance")
     get_feature_importance(model, feature_names)
 
 
-def predict_and_evaluate_xgb(model, X_test, y_test, Z_scaled, model_lower=None, model_upper=None):
-    predictions = predict_xgboost(model, Z_scaled)
+def predict_and_evaluate_xgb(model, X_test, y_test, Z_scaled, model_lower, model_upper):
+    predictions = predict_xgboost(model, Z_scaled, model_lower, model_upper)
     metrics = evaluate_xgboost(model, X_test, y_test)
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
     print_stats_inline("XGB Prediction Stats", predictions)
@@ -192,19 +190,19 @@ def predict_and_evaluate_xgb(model, X_test, y_test, Z_scaled, model_lower=None, 
 
 
 def predict_and_evaluate_lasso(model, X_test, y_test, Z_scaled):
-        rmse, mae, r2 = evaluate_model(model, X_test, y_test)
-        print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
-        predict_with_stats = predict_with_stats(model, X_test, y_test, Z_scaled)
-        print_stats_inline("Lasso Prediction Stats", predict_with_stats)
-        get_coeficients_reg_models(model.coef_, feature_names)
+    rmse, mae, r2 = evaluate_model(model, X_test, y_test)
+    print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
+    stats = predict_with_stats(model, X_test, y_test, Z_scaled)
+    print_stats_inline("Lasso Prediction Stats", stats)
+    get_coeficients_reg_models(model.coef_, feature_names)
 
 
 def predict_and_evaluate_ridge(model, X_test, y_test, Z_scaled):
-        rmse, mae, r2 = evaluate_model(model, X_test, y_test)
-        print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
-        predict_with_stats = predict_with_stats(model, X_test, y_test, Z_scaled)
-        print_stats_inline("Ridge Prediction Stats", predict_with_stats)
-        get_coeficients_reg_models(model.coef_, feature_names)
+    rmse, mae, r2 = evaluate_model(model, X_test, y_test)
+    print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
+    stats = predict_with_stats(model, X_test, y_test, Z_scaled)
+    print_stats_inline("Ridge Prediction Stats", stats)
+    get_coeficients_reg_models(model.coef_, feature_names)
 
 
 
