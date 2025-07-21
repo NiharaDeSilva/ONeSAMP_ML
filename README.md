@@ -4,7 +4,9 @@
 
 ONeSAMP_ML computes the effective population size of genomic data sets.
 This program takes a file in GENEPOP format and computes five summary statistics. 
-The software then uses linear regression based on these summary statistics to estimate of effective population size.  
+The software then uses supervised machine learning to estimate the effective population size using the summary statistics as input features to the models.
+ONeSAMP_ML enables effective population size inference using a range of machine learning models, including regularized regression techniques such as Lasso and Ridge regression, as well as ensemble methods like Random Forest and XGBoost.
+Users have the flexibility to select their preferred model for prediction based on their specific requirements or performance considerations.
 
 It is strongly recommended that users read the accompanying manuscript before applying ONeSAMP_ML to their data. 
 
@@ -13,16 +15,10 @@ It is strongly recommended that users read the accompanying manuscript before ap
 # Usage Overview
 1. The program can be executed on MAC OS or LINUX system.
 
-2. Must have R downloaded in order to run the software
-        
-   You can download and set up the R environment at this link: 
-        
-        https://www.tutorialspoint.com/r/r_environment_setup.htm
-
-3. Python 3.8 or later is required to run the program
+2. Python 3.8 or later is required to run the program
 
 # Getting Started
-1. Make a new ONeSAMP directory
+1. Make a new ONeSAMP_ML directory
 
         mkdir ONeSAMP_ML
         cd ONeSAMP_ML
