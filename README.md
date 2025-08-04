@@ -59,8 +59,6 @@ Run the program
 
 If you have any issues or anyquestions, please feel free to contact us at suhashidesilva@ufl.edu or through the GitHub Issues.
 
-# Citing ONeSAMP_ML
-If you use the ONeSAMP_ML in your research project, please cite: 
 
 
 
