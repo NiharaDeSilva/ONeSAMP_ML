@@ -6,7 +6,6 @@ ONeSAMP_ML computes the effective population size of genomic data sets.
 This program takes a file in GENEPOP format and computes five summary statistics. 
 The software then uses supervised machine learning to estimate the effective population size using the summary statistics as input features to the models.
 ONeSAMP_ML enables effective population size inference using a range of machine learning models, including regularized regression techniques such as Lasso and Ridge regression, as well as ensemble methods like Random Forest and XGBoost.
-Users have the flexibility to select their preferred model for prediction based on their specific requirements or performance considerations.
 
 It is strongly recommended that users read the accompanying manuscript before applying ONeSAMP_ML to their data. 
 
