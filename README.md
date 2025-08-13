@@ -57,7 +57,7 @@ Run the program
 
 # Getting Help
 
-If you have any issues or anyquestions, please feel free to contact us at suhashidesilva@ufl.edu or through the GitHub Issues.
+If you have any issues or any questions, please feel free to contact us at suhashidesilva@ufl.edu or through the GitHub Issues.
 
 
 
