@@ -1,53 +1,59 @@
 
-# Model Training and Inference Modules
+# Model Training and Evaluation Modules
 
-This folder contains the core machine learning logic for training, saving, loading, and predicting with multiple models used in the project. 
+This directory contains modular Python scripts for training, evaluating, and loading machine learning models used in the project. It supports multiple regression models and is organized for reusability and clarity.
 
 ---
 
 ## File Overview
 
 ### `train.py`
-Responsible for training different machine learning models. Each model has its own dedicated training function with predefined hyperparameters for reproducibility.
+Handles **end-to-end training of machine learning models**, including:
+- Scaling input data with `StandardScaler`
+- Fitting the model to training data
+- Saving trained models (if applicable)
 
 **Supported models:**
-- Random Forest (`train_random_forest`)
-- XGBoost (`train_xgboost`)
-- XGBoost Quantile Regressors (`train_xgboost_quantile`)
-- Lasso Regression (`train_lasso`)
-- Ridge Regression (`train_ridge`)
+- Random Forest
+- XGBoost (standard and quantile-based)
+- Lasso Regression
+- Ridge Regression
 
-Each function returns a fitted model and optionally saves it using the `model_utils` functions.
+Each function in this module performs internal scaling and model training and returns the trained model for evaluation or reuse.
 
 ---
 
 ### `predict.py`
-Handles model evaluation and inference, including confidence intervals.
+Responsible for:
+- Making predictions on new input points (`Z`)
+- Obtain Confidence interval for the prediction of new input point
+- Evaluating models on test data using:
+  - **R² (coefficient of determination)**
+  - **RMSE (root mean squared error)**
+  - **MAE (mean absolute error)**
+- Computing and reporting **feature importance** (for interpretable models)
 
-**Key features:**
-- Evaluate models using common metrics: MSE, RMSE, MAE, R².
-- Predict on new input (`Z`) using trained models.
-- Estimate prediction confidence intervals:
-  - For **Random Forest**: Aggregates predictions from all trees.
-  - For **XGBoost**: Supports quantile regression (if lower/upper models provided).
-  - For **Lasso Regression**:
-  - For **Ridge Regression**:
+This module assumes models are already trained and optionally loaded using `model_utils`.
 
 ---
 
 ### `model_utils.py`
-Utility module for:
-- Saving trained models using `joblib`
-- Loading existing models for reuse
-- Managing model file paths
+Utility functions for **model loading**, used to:
+- Load pre-trained models from disk using `joblib`
+- Optionally manage model directories and paths
+
+This module does **not** perform training or prediction — it only manages model retrieval for reuse in evaluation or inference workflows.
 
 ---
 
-## Usage
+## Workflow Summary
 
-All modules are imported and called from `main.py`. You can choose a specific model or run all supported models using `run_model_training()` based on a selection input.
+1. Use `train.py` to train and scale models from raw input data.
+2. Use `predict.py` to:
+   - Evaluate models on test data
+   - Predict on new input points
+   - Analyze model performance and interpretability
+3. Use `model_utils.py` to load previously saved models when retraining is not necessary.
 
-```python
-from models.train import train_random_forest
-from models.predict import predict_and_evaluate_rf
-from models.model_utils import save_model, load_model
+
+
