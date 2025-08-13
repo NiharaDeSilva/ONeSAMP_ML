@@ -51,7 +51,7 @@ This module does **not** perform training or prediction — it only manages mode
 1. Use `train.py` to train and scale models from raw input data.
 2. Use `predict.py` to:
    - Evaluate models on test data
-   - Predict on new input points
+   - Predict on new input points and obtain confidence interval
    - Analyze model performance and interpretability
 3. Use `model_utils.py` to load previously saved models when retraining is not necessary.
 
