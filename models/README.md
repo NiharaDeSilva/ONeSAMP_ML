@@ -1,7 +1,7 @@
 
-# Model Training and Evaluation Modules
+# Model Training and Evaluation
 
-This directory contains modular Python scripts for training, evaluating, and loading machine learning models used in the project. It supports multiple regression models and is organized for reusability and clarity.
+This directory contains modular Python files for training, evaluating, and loading machine learning models used in the project. It supports multiple regression models and is organized for reusability and clarity.
 
 ---
 
@@ -11,7 +11,7 @@ This directory contains modular Python scripts for training, evaluating, and loa
 Handles **end-to-end training of machine learning models**, including:
 - Scaling input data with `StandardScaler`
 - Fitting the model to training data
-- Saving trained models (if applicable)
+- Saving trained models
 
 **Supported models:**
 - Random Forest
