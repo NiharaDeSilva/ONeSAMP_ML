@@ -74,7 +74,7 @@ lowerNe = 4
 if (args.lNe):
     lowerNe = int(args.lNe)
 
-upperNe = 600
+upperNe = 400
 if (args.uNe):
     upperNe = int(args.uNe)
 
