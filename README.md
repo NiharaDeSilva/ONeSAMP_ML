@@ -27,6 +27,9 @@ It is strongly recommended that users read the accompanying manuscript before ap
 3. Give the Permission to the ONeSAMP file under the build directory
 
         chmod 777 build/OneSamp
+4. Create a output directory
+   
+        mkdir output
 
 # Running ONeSAMP_ML
 
