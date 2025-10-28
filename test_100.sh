@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --account=jaime.ruiz
+#SBATCH --account=boucher
 #SBATCH --job-name=oneSamp    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=suhashidesilva@ufl.edu     # Where to send mail
@@ -17,26 +17,26 @@ pwd; hostname; date
 module load conda
 source activate /blue/boucher/suhashidesilva/conda_envs/my_env
 
-chmod +rwx /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/build/OneSamp
+chmod +rwx /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/build/OneSamp
 #export PYTHONPATH=$PYTHONPATH:/blue/boucher/suhashidesilva/2025/WFsim/
 
 echo "Running plot script on multiple CPU cores"
 
-#python /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/main.py --s 10000 --o /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/data_70/genePop5Ix5L > /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/genePop5Ix5L.out
+python /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/main.py --s 10000 --o /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/data_70/genePop150x500_1 > /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/genePop150x500_1.out
 
-folder="/blue/boucher/suhashidesilva/2025/ONeSAMP_ML/data_70/samples"
-output="/blue/boucher/suhashidesilva/2025/ONeSAMP_ML/output/"
+folder="/blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/data_70/samples"
+output="/blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/"
 
 
 #Iterate through the files in the folder
-for file in "$folder"/*; do
-    if [ -f "$file" ]; then
-        filename=$(basename -- "$file")
-        filename_no_extension="${filename%.*}"
-        output_file="$output/${filename_no_extension}"
-        python /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/main.py --s 100 --o "$file" > "$output_file"
-        echo "Processed $file and saved output to $output_file"
-    fi
-done
+#for file in "$folder"/*; do
+#    if [ -f "$file" ]; then
+#        filename=$(basename -- "$file")
+#        filename_no_extension="${filename%.*}"
+#        output_file="$output/${filename_no_extension}"
+#        python /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/main.py --s 100 --o "$file" > "$output_file"
+#        echo "Processed $file and saved output to $output_file"
+#    fi
+#done
 
 date

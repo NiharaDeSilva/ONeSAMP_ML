@@ -76,17 +76,23 @@ def predict_xgboost(model, Z_scaled, model_lower, model_upper):
     mean_pred = np.mean(tree_preds)
     median_pred = np.median(tree_preds)
 
-    predictions = {
-        "mean": mean_pred.item(),
-        "median": median_pred.item()
-    }
-
-    # Add quantile predictions if provided
     if model_lower is not None and model_upper is not None:
         lower = model_lower.predict(Z_scaled)
         upper = model_upper.predict(Z_scaled)
-        predictions["lower_95ci"] = lower.item()
-        predictions["upper_95ci"] = upper.item()
+
+        # Enforce order (in case quantiles flip)
+        lower, upper = np.minimum(lower, upper), np.maximum(lower, upper)
+
+        # Clip mean and median to stay within the bounds
+        mean_pred = np.clip(mean_pred, lower, upper)
+        median_pred = np.clip(median_pred, lower, upper)
+
+        predictions = {
+            "mean": mean_pred.item(),
+            "median": median_pred.item(),
+            "lower_95ci": lower.item(),
+            "upper_95ci": upper.item()
+        }
 
     return predictions
 

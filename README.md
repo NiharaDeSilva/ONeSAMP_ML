@@ -50,10 +50,9 @@ optional arguments:
     --l     Missing data for loci (size: 0-1)
 ```
 
-
 Run the program
 
-        python main --s 1000 --o exampleData/genePop10Ix30L > output.txt
+        python main --s 1000 --o data_70/genePop100x150 > output.txt
 
 # Getting Help
 

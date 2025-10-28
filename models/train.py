@@ -12,13 +12,17 @@ from xgboost import XGBRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.utils import resample  
 from statistics import statisticsClass
+import config
 from models.predict import predict_and_evaluate_rf, predict_and_evaluate_xgb, predict_and_evaluate_lasso, predict_and_evaluate_ridge
 
 
 inputFileStatistics = statisticsClass()
-loci = inputFileStatistics.numLoci
-sampleSize = inputFileStatistics.sampleSize
-output_path = (f"/blue/boucher/suhashidesilva/2025/ONeSAMP_ML/output/genePop{sampleSize}x{loci}")
+loci = config.numLoci
+sampleSize = config.sampleSize
+
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+#output_path = (f"/blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/genePop{sampleSize}x{loci}")
+output_path = os.path.join(BASE_PATH, "./output/")
 os.makedirs(output_path, exist_ok=True)
 scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
 
@@ -65,6 +69,8 @@ model_upper_path = os.path.join(output_path, f"xgb_model_upper_{sampleSize}x{loc
 
 def train_xgboost(X_train_scaled, y_train_np, xgb_path):
     xgb_model = XGBRegressor(
+        objective='reg:quantileerror',
+        quantile_alpha=0.5,
         n_estimators=2000,
         learning_rate=0.01,
         max_depth=8,
@@ -74,7 +80,7 @@ def train_xgboost(X_train_scaled, y_train_np, xgb_path):
         random_state=42,
         n_jobs=-1
     )
-
+    
     xgb_model.fit(X_train_scaled, y_train_np.ravel())
     joblib.dump(xgb_model, xgb_path)
     return xgb_model

@@ -9,6 +9,7 @@ import multiprocessing
 import concurrent.futures
 import sys
 import shutil
+import config
 from statistics import statisticsClass
 from sklearn.utils import resample
 from models.train import run_model_training
@@ -21,8 +22,8 @@ DEBUG = 0  ## BOUCHER: Change this to 1 for debuggin mode
 OUTPUTFILENAME = "priors.txt"
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
-directory = "/blue/boucher/suhashidesilva/2025/ONeSAMP_ML/temp"
-path = os.path.join("/", directory)
+directory = "temp"
+path = os.path.join("./", directory)
 results_path = os.path.join(BASE_PATH, "./output/")
 
 POPULATION_GENERATOR = "./build/OneSamp"
@@ -73,7 +74,7 @@ lowerNe = 4
 if (args.lNe):
     lowerNe = int(args.lNe)
 
-upperNe = 400
+upperNe = 600
 if (args.uNe):
     upperNe = int(args.uNe)
 
@@ -136,6 +137,9 @@ if (DEBUG):
 rangeTheta = "%f,%f" % (lowerTheta, upperTheta)
 
 
+config.fileName = args.o or "oneSampIn"
+config.BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+config.output_path = results_path
 
 #########################################
 # STARTING INITIAL POPULATION
@@ -158,6 +162,8 @@ inputFileStatistics.test_stat4()
 
 numLoci = inputFileStatistics.numLoci
 sampleSize = inputFileStatistics.sampleSize
+config.numLoci = numLoci
+config.sampleSize = sampleSize
 
 ##Creating input file & List with intial statistics
 textList = [str(inputFileStatistics.stat1_new), str(inputFileStatistics.stat2), str(inputFileStatistics.stat3),
@@ -302,6 +308,10 @@ try:
 except FileNotFoundError:
     print(f"Directory '{directory}' not found.")
 
+allPopStats = results_path + "allPopStats_" + getName(fileName)
+with open(allPopStats, 'w') as file:
+    for result in results_list:
+        file.write('\t'.join(map(str, result)) + '\n')
 
 simulation_time = time.time()
 
