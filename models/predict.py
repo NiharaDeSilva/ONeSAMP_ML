@@ -6,8 +6,52 @@ import time
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
 from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
+from calibration import calibration_curves
+
 
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
+def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=300, alpha=0.05, model_name=""):
+    """
+    General non-parametric bootstrap uncertainty estimator.
+    Works for ANY sklearn-style regression model.
+    Returns CI, mean, median, min, max, std.
+    """
+
+    preds = []
+
+    for b in range(n_bootstrap):
+        # Step 1: Resample training data WITH replacement
+        X_boot, y_boot = resample(X_train, y_train)
+
+        # Step 2: Retrain the model on the bootstrapped dataset
+        model.fit(X_boot, y_boot)
+
+        # Step 3: Predict the same input point
+        pred = model.predict(X_point)[0]
+        preds.append(pred)
+
+    preds = np.array(preds)
+
+    # Step 4: Compute uncertainty statistics
+    lower = np.percentile(preds, 100 * (alpha / 2))
+    upper = np.percentile(preds, 100 * (1 - alpha / 2))
+
+    results = {
+        "mean": np.mean(preds),
+        "median": np.median(preds),
+        "std": np.std(preds),
+        "min": np.min(preds),
+        "max": np.max(preds),
+        "lower_95ci": lower,
+        "upper_95ci": upper,
+        "model": model_name
+    }
+
+    return results
+
+
+
+
 
 # -----------------------------------
 # Random Forest Regression
@@ -37,6 +81,7 @@ def predict_random_forest(model, X_predict):
 def evaluate_random_forest(model, X_test, y_test):
     # Evaluation metrics
     y_pred = model.predict(X_test)
+    calibration_curves(y_test, y_pred, "RandomForest")
     mse = mean_squared_error(y_test, y_pred)
     rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_test, y_pred)
@@ -101,6 +146,7 @@ def predict_xgboost(model, Z_scaled, model_lower, model_upper):
 def evaluate_xgboost(model, X_test, y_test):
     # Predict on test set
     y_pred_test = model.predict(X_test)
+    calibration_curves(y_test, y_pred_test, "XGBoost")
     mse = mean_squared_error(y_test, y_pred_test)
     rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_test, y_pred_test)
@@ -121,31 +167,32 @@ def evaluate_xgboost(model, X_test, y_test):
 
 def evaluate_model(model, X_test, y_test):
     y_pred = model.predict(X_test)
+    calibration_curves(y_test, y_pred, "regu_reg")
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
     return rmse, mae, r2
 
 
-# ---- Bootstrap-Based Prediction Statistics ---- #
-def predict_with_stats(model, X_train, y_train, new_sample, n_bootstrap=1000, alpha=0.05):
-    predictions = []
-    for _ in range(n_bootstrap):
-        X_boot, y_boot = resample(X_train, y_train)
-        model.fit(X_boot, y_boot)
-        pred = model.predict(new_sample)[0]
-        predictions.append(pred)
-    predictions = np.array(predictions)
-    lower = np.percentile(predictions, 100 * (alpha / 2))
-    upper = np.percentile(predictions, 100 * (1 - alpha / 2))
-    return {
-        'mean': np.mean(predictions),
-        'median': np.median(predictions),
-        'min': np.min(predictions),
-        'max': np.max(predictions),
-        'lower_95ci': lower,
-        'upper_95ci': upper
-    }
+# # ---- Bootstrap-Based Prediction Statistics ---- #
+# def predict_with_stats(model, X_train, y_train, new_sample, n_bootstrap=1000, alpha=0.05):
+#     predictions = []
+#     for _ in range(n_bootstrap):
+#         X_boot, y_boot = resample(X_train, y_train)
+#         model.fit(X_boot, y_boot)
+#         pred = model.predict(new_sample)[0]
+#         predictions.append(pred)
+#     predictions = np.array(predictions)
+#     lower = np.percentile(predictions, 100 * (alpha / 2))
+#     upper = np.percentile(predictions, 100 * (1 - alpha / 2))
+#     return {
+#         'mean': np.mean(predictions),
+#         'median': np.median(predictions),
+#         'min': np.min(predictions),
+#         'max': np.max(predictions),
+#         'lower_95ci': lower,
+#         'upper_95ci': upper
+#     }
 
 def print_stats_inline(name, stats):
     print(f"{name} => Mean: {stats['mean']:.4f}, Median: {stats['median']:.4f}, "
@@ -173,41 +220,54 @@ def evaluate_cv(model, X, y, cv_folds=5):
 
 #---------------------------------------Predict & Evaluate -------------------------------------#
 
-def predict_and_evaluate_rf(model, X_test, y_test, Z_scaled):
-    predictions = predict_random_forest(model, Z_scaled)
+def predict_and_evaluate_rf(model, X_train, y_train, X_test, y_test, Z_scaled):
+    # predictions = predict_random_forest(model, Z_scaled)
     metrics = evaluate_random_forest(model, X_test, y_test)
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
-    print_stats_inline("RF Prediction Stats", predictions)
+    boot_stats = bootstrap_uncertainty(
+        model, X_train, y_train, Z_scaled,
+        n_bootstrap=300, model_name="RandomForest"
+    )
+    print_stats_inline("RF Prediction Stats", boot_stats)
     print("\nFeature importance")
     get_feature_importance(model, feature_names)
 
 
-def predict_and_evaluate_xgb(model, X_test, y_test, Z_scaled, model_lower, model_upper):
-    predictions = predict_xgboost(model, Z_scaled, model_lower, model_upper)
+def predict_and_evaluate_xgb(model, X_train, y_train, X_test, y_test, Z_scaled):
+    # predictions = predict_xgboost(model, Z_scaled, model_lower, model_upper)
     metrics = evaluate_xgboost(model, X_test, y_test)
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
-    print_stats_inline("XGB Prediction Stats", predictions)
+    boot_stats = bootstrap_uncertainty(
+        model, X_train, y_train, Z_scaled, n_bootstrap=300, model_name="XGBoost"
+    )
+    print_stats_inline("XGB Prediction Stats", boot_stats)
     get_feature_importance(model, feature_names)
 
-    if model_lower is not None and model_upper is not None:
-        print(f"Lower 95% CI: {predictions['lower_95ci']:.4f}, Upper 95% CI: {predictions['upper_95ci']:.4f}")
-    else:
-        print("No quantile models provided for confidence intervals.")
+    # if model_lower is not None and model_upper is not None:
+    #     print(f"Lower 95% CI: {predictions['lower_95ci']:.4f}, Upper 95% CI: {predictions['upper_95ci']:.4f}")
+    # else:
+    #     print("No quantile models provided for confidence intervals.")
 
 
-def predict_and_evaluate_lasso(model, X_test, y_test, Z_scaled):
+def predict_and_evaluate_lasso(model, X_train, y_train, X_test, y_test, Z_scaled):
     rmse, mae, r2 = evaluate_model(model, X_test, y_test)
     print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
-    stats = predict_with_stats(model, X_test, y_test, Z_scaled)
-    print_stats_inline("Lasso Prediction Stats", stats)
+    # stats = predict_with_stats(model, X_test, y_test, Z_scaled)
+    boot_stats = bootstrap_uncertainty(
+        model, X_train, y_train, Z_scaled, n_bootstrap=300, model_name="Lasso"
+    )
+    print_stats_inline("Lasso Prediction Stats", boot_stats)
     get_coeficients_reg_models(model.coef_, feature_names)
 
 
-def predict_and_evaluate_ridge(model, X_test, y_test, Z_scaled):
+def predict_and_evaluate_ridge(model, X_train, y_train, X_test, y_test, Z_scaled):
     rmse, mae, r2 = evaluate_model(model, X_test, y_test)
     print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
-    stats = predict_with_stats(model, X_test, y_test, Z_scaled)
-    print_stats_inline("Ridge Prediction Stats", stats)
+    # stats = predict_with_stats(model, X_test, y_test, Z_scaled)
+    boot_stats = bootstrap_uncertainty(
+        model, X_train, y_train, Z_scaled, n_bootstrap=300, model_name="Ridge"
+    )
+    print_stats_inline("Ridge Prediction Stats", boot_stats)
     get_coeficients_reg_models(model.coef_, feature_names)
 
 
