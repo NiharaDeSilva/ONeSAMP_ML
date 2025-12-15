@@ -70,11 +70,11 @@ mutationRate = 0.000000012
 if (args.r):
     mutationRate = float(args.r)
 
-lowerNe = 4
+lowerNe = 20
 if (args.lNe):
     lowerNe = int(args.lNe)
 
-upperNe = 400
+upperNe = 120
 if (args.uNe):
     upperNe = int(args.uNe)
 
@@ -277,7 +277,7 @@ except FileExistsError:
 
 def main():
     # Parallel process the random populations and add to a list
-    with concurrent.futures.ProcessPoolExecutor(max_workers=32) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=16) as executor:
         for result in executor.map(processRandomPopulation, range(numOneSampTrials)):
             try:
                 results_list.append(result)

@@ -6,7 +6,7 @@ import time
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
 from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
-from calibration import calibration_curves
+from models.calibration import calibration_curves
 
 
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
