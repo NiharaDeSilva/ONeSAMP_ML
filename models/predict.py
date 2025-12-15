@@ -13,7 +13,6 @@ feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homo
 def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=300, alpha=0.05, model_name=""):
     """
     General non-parametric bootstrap uncertainty estimator.
-    Works for ANY sklearn-style regression model.
     Returns CI, mean, median, min, max, std.
     """
 
@@ -165,9 +164,17 @@ def evaluate_xgboost(model, X_test, y_test):
 # -----------------------------------
 
 
-def evaluate_model(model, X_test, y_test):
+def evaluate_lasso(model, X_test, y_test):
     y_pred = model.predict(X_test)
-    calibration_curves(y_test, y_pred, "regu_reg")
+    calibration_curves(y_test, y_pred, "lasso")
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    return rmse, mae, r2
+
+def evaluate_ridge(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    calibration_curves(y_test, y_pred, "ridge")
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
@@ -250,7 +257,7 @@ def predict_and_evaluate_xgb(model, X_train, y_train, X_test, y_test, Z_scaled):
 
 
 def predict_and_evaluate_lasso(model, X_train, y_train, X_test, y_test, Z_scaled):
-    rmse, mae, r2 = evaluate_model(model, X_test, y_test)
+    rmse, mae, r2 = evaluate_lasso(model, X_test, y_test)
     print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     # stats = predict_with_stats(model, X_test, y_test, Z_scaled)
     boot_stats = bootstrap_uncertainty(
@@ -261,7 +268,7 @@ def predict_and_evaluate_lasso(model, X_train, y_train, X_test, y_test, Z_scaled
 
 
 def predict_and_evaluate_ridge(model, X_train, y_train, X_test, y_test, Z_scaled):
-    rmse, mae, r2 = evaluate_model(model, X_test, y_test)
+    rmse, mae, r2 = evaluate_ridge(model, X_test, y_test)
     print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     # stats = predict_with_stats(model, X_test, y_test, Z_scaled)
     boot_stats = bootstrap_uncertainty(
