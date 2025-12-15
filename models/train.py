@@ -170,7 +170,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
         # model_lower, model_upper = train_xgboost_quantile(X_train_scaled, y_train, model_lower_path, model_upper_path, quantile_alpha=0.05)
         predict_and_evaluate_xgb(model, X_train, y_train, X_test, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
-        return model, model_lower, model_upper
+        return model
 
     def run_lasso():
         print("\n------------- LASSO REGRESSION ------------------")
@@ -194,8 +194,8 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
         return rf_model
 
     elif model_selection == 1:
-        xgb_model, model_lower, model_upper = run_xgb()
-        return xgb_model, model_lower, model_upper
+        xgb_model = run_xgb()
+        return xgb_model
 
     elif model_selection == 2:
         lasso_model = run_lasso()
@@ -207,7 +207,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
 
     else:
         rf_model = run_rf()
-        xgb_model, model_lower, model_upper = run_xgb()
+        xgb_model = run_xgb()
         lasso_model = run_lasso()
         ridge_model = run_ridge()
-        return rf_model, xgb_model, model_lower, model_upper, lasso_model, ridge_model
+        return rf_model, xgb_model, lasso_model, ridge_model

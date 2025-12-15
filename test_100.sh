@@ -3,9 +3,9 @@
 #SBATCH --job-name=oneSamp    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=suhashidesilva@ufl.edu     # Where to send mail
-#SBATCH --ntasks=1		      # Number of tasks
-#SBATCH --cpus-per-task=4	      # Number of cores per task
-#SBATCH --mem=20gb                     # Job memory request
+#SBATCH --ntasks=1                    # Number of tasks
+#SBATCH --cpus-per-task=16            # Number of cores per task
+#SBATCH --mem=100gb                     # Job memory request
 #SBATCH --time=240:00:00               # Time limit hrs:min:sec
 #SBATCH --output=serial_test_%j.log   # Standard output and error log
 
@@ -15,28 +15,33 @@ pwd; hostname; date
 
 #module load R/4.1
 module load conda
-source activate /blue/boucher/suhashidesilva/conda_envs/my_env
+conda activate /blue/boucher/suhashidesilva/.conda/envs/my_env
 
-chmod +rwx /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/build/OneSamp
+echo "Python path:"
+which python
+python -c "import matplotlib; print('matplotlib OK')"
+
+
+chmod +rwx /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/build/OneSamp
 #export PYTHONPATH=$PYTHONPATH:/blue/boucher/suhashidesilva/2025/WFsim/
 
 echo "Running plot script on multiple CPU cores"
 
-python /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/main.py --s 10000 --o /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/data_70/genePop150x500_1 > /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/genePop150x500_1.out
+#python /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/main.py --s 10000 --o /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/data_70/genePop150x500_1 > /blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/genePop150x500_1.out
 
-folder="/blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/data_70/samples"
-output="/blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/"
+folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70"
+output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output/"
 
 
 #Iterate through the files in the folder
-#for file in "$folder"/*; do
-#    if [ -f "$file" ]; then
-#        filename=$(basename -- "$file")
-#        filename_no_extension="${filename%.*}"
-#        output_file="$output/${filename_no_extension}"
-#        python /blue/boucher/suhashidesilva/2025/ONeSAMP_ML/main.py --s 100 --o "$file" > "$output_file"
-#        echo "Processed $file and saved output to $output_file"
-#    fi
-#done
+for file in "$folder"/*; do
+    if [ -f "$file" ]; then
+        filename=$(basename -- "$file")
+        filename_no_extension="${filename%.*}"
+        output_file="$output/${filename_no_extension}"
+        python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o "$file" > "$output_file"
+        echo "Processed $file and saved output to $output_file"
+    fi
+done
 
 date

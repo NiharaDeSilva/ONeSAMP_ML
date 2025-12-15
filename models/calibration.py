@@ -6,7 +6,8 @@ def ensure_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def calibration_curves(true, pred, model_name, save_dir="calibration_plots", bins=10):
+save_dir = "../../blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots"
+def calibration_curves(true, pred, model_name, save_dir, bins=10):
     true = np.array(true)
     pred = np.array(pred)
 
