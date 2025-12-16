@@ -168,7 +168,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
         start = time.time()
         model = train_xgboost(X_train_scaled, y_train, xgb_path=xgb_path)
         # model_lower, model_upper = train_xgboost_quantile(X_train_scaled, y_train, model_lower_path, model_upper_path, quantile_alpha=0.05)
-        predict_and_evaluate_xgb(model, X_train, y_train, X_test, y_test, Z_scaled)
+        predict_and_evaluate_xgb(model, X_train_scaled, y_train, X_test_scaled, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
         return model
 
@@ -176,7 +176,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
         print("\n------------- LASSO REGRESSION ------------------")
         start = time.time()
         model = train_lasso(X_train_scaled, y_train, lasso_path=lasso_path)
-        predict_and_evaluate_lasso(model, X_train, y_train, X_test, y_test, Z_scaled)
+        predict_and_evaluate_lasso(model, X_train_scaled, y_train, X_test_scaled, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
         return model
 
@@ -184,7 +184,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
         print("\n------------- RIDGE REGRESSION ------------------")
         start = time.time()
         model = train_ridge(X_train_scaled, y_train, ridge_path=ridge_path)
-        predict_and_evaluate_ridge(model, X_train, y_train, X_test, y_test, Z_scaled)
+        predict_and_evaluate_ridge(model, X_train_scaled, y_train, X_test_scaled, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
         return model
 
