@@ -7,6 +7,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, m
 from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
 from models.calibration import calibration_curves
+import copy
 
 
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
@@ -22,11 +23,13 @@ def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=300, alp
         # Step 1: Resample training data WITH replacement
         X_boot, y_boot = resample(X_train, y_train)
 
+        boot_model = copy.deepcopy(model)
         # Step 2: Retrain the model on the bootstrapped dataset
-        model.fit(X_boot, y_boot)
+        # model.fit(X_boot, y_boot)
+        boot_model.fit(X_boot, y_boot)
 
         # Step 3: Predict the same input point
-        pred = model.predict(X_point)[0]
+        pred = boot_model.predict(X_point)[0]
         preds.append(pred)
 
     preds = np.array(preds)
