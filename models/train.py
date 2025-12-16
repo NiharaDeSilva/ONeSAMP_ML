@@ -70,8 +70,7 @@ model_upper_path = os.path.join(output_path, f"xgb_model_upper_{sampleSize}x{loc
 def train_xgboost(X_train_scaled, y_train_np, xgb_path):
     xgb_model = XGBRegressor(
         objective='reg:squarederror',
-        quantile_alpha=0.5,
-        n_estimators=2000,
+        n_estimators=5000,
         learning_rate=0.01,
         max_depth=8,
         min_child_weight=3,
