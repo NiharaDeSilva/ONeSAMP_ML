@@ -8,6 +8,17 @@ from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
 from models.calibration import calibration_curves
 import copy
+from statistics import statisticsClass
+import config
+inputFileStatistics = statisticsClass()
+loci = config.numLoci
+sampleSize = config.sampleSize
+
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+
+dir_name = f"{sampleSize}x{loci}"
+plot_dir = os.path.join(BASE_PATH, f"./plots/{dir_name}")
+os.makedirs(plot_dir, exist_ok=True)
 
 
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
@@ -83,7 +94,7 @@ def predict_random_forest(model, X_predict):
 def evaluate_random_forest(model, X_test, y_test):
     # Evaluation metrics
     y_pred = model.predict(X_test)
-    calibration_curves(y_test, y_pred, "RandomForest")
+    calibration_curves(y_test, y_pred, "RandomForest", save_dir=plot_dir)
     mse = mean_squared_error(y_test, y_pred)
     rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_test, y_pred)
@@ -148,7 +159,7 @@ def predict_xgboost(model, Z_scaled, model_lower, model_upper):
 def evaluate_xgboost(model, X_test, y_test):
     # Predict on test set
     y_pred_test = model.predict(X_test)
-    calibration_curves(y_test, y_pred_test, "XGBoost")
+    calibration_curves(y_test, y_pred_test, "XGBoost", save_dir=plot_dir)
     mse = mean_squared_error(y_test, y_pred_test)
     rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_test, y_pred_test)
@@ -169,7 +180,7 @@ def evaluate_xgboost(model, X_test, y_test):
 
 def evaluate_lasso(model, X_test, y_test):
     y_pred = model.predict(X_test)
-    calibration_curves(y_test, y_pred, "lasso")
+    calibration_curves(y_test, y_pred, "lasso", save_dir=plot_dir)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
@@ -177,7 +188,7 @@ def evaluate_lasso(model, X_test, y_test):
 
 def evaluate_ridge(model, X_test, y_test):
     y_pred = model.predict(X_test)
-    calibration_curves(y_test, y_pred, "ridge")
+    calibration_curves(y_test, y_pred, "ridge", save_dir=plot_dir)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
