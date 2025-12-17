@@ -12,21 +12,17 @@ from xgboost import XGBRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.utils import resample  
 from statistics import statisticsClass
-import config
+from config import config
 from models.predict import predict_and_evaluate_rf, predict_and_evaluate_xgb, predict_and_evaluate_lasso, predict_and_evaluate_ridge
 from models.calibration import calibration_curves
 
-inputFileStatistics = statisticsClass()
 loci = config.numLoci
 sampleSize = config.sampleSize
 
-BASE_PATH = os.path.dirname(os.path.realpath(__file__))
-#output_path = (f"/blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/genePop{sampleSize}x{loci}")
-output_path = os.path.join(BASE_PATH, "./output/")
+output_path = os.path.join(config.BASE_PATH, "output/")
 os.makedirs(output_path, exist_ok=True)
 scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
-dir_name = f"{sampleSize}x{loci}"
-plot_dir = os.path.join(BASE_PATH, f"./plots/{dir_name}")
+plot_dir = os.path.join(config.BASE_PATH, f"plots/{sampleSize}x{loci}")
 os.makedirs(plot_dir, exist_ok=True)
 
 
@@ -102,7 +98,7 @@ def train_random_forest(X_train_scaled, y_train_np, rf_path):
             n_jobs=-1
         )
 
-    get_oof_predictions(rf_constructor, X_train_scaled, y_train_np.ravel(), "RandomForest_oof")
+    get_oof_predictions(rf_constructor, X_train_scaled, y_train_np.ravel(), "RandomForest")
     rf_model = rf_constructor()
     rf_model.fit(X_train_scaled, y_train_np.ravel())
     joblib.dump(rf_model, rf_path)
@@ -130,7 +126,7 @@ def train_xgboost(X_train_scaled, y_train_np, xgb_path):
             random_state=42,
             n_jobs=-1
         )
-    get_oof_predictions(xgb_constructor, X_train_scaled, y_train_np.ravel(), "XGBoost_oof")
+    get_oof_predictions(xgb_constructor, X_train_scaled, y_train_np.ravel(), "XGBoost")
 
     xgb_model = xgb_constructor()
     xgb_model.fit(X_train_scaled, y_train_np.ravel())
@@ -177,7 +173,7 @@ def train_lasso(X_train_scaled, y_train, lasso_path):
     def lasso_constructor():
         return Lasso(alpha=0.01, max_iter=10000)
 
-    get_oof_predictions(lasso_constructor, X_train_scaled, y_train.ravel(), "Lasso_oof")
+    get_oof_predictions(lasso_constructor, X_train_scaled, y_train.ravel(), "Lasso")
 
     lasso_model = lasso_constructor()
     lasso_model.fit(X_train_scaled, y_train.ravel())
@@ -189,7 +185,7 @@ def train_ridge(X_train_scaled, y_train, ridge_path):
     def ridge_constructor():
         return Ridge(alpha=10)
 
-    get_oof_predictions(ridge_constructor, X_train_scaled, y_train.ravel(), "Ridge_oof")
+    get_oof_predictions(ridge_constructor, X_train_scaled, y_train.ravel(), "Ridge")
     ridge_model = ridge_constructor()
     ridge_model.fit(X_train_scaled, y_train.ravel())
     joblib.dump(ridge_model, ridge_path)

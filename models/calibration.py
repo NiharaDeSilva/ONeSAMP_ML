@@ -13,7 +13,7 @@ def ensure_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def calibration_curves(true, pred, model_name, save_dir="plots", bins=10, folds=None):
+def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     """
     Generate:
         1. Pred vs True

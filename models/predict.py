@@ -8,16 +8,15 @@ from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
 from models.calibration import calibration_curves
 import copy
-from statistics import statisticsClass
-import config
-inputFileStatistics = statisticsClass()
+from config import config
+
 loci = config.numLoci
 sampleSize = config.sampleSize
 
-BASE_PATH = os.path.dirname(os.path.realpath(__file__))
-
-dir_name = f"{sampleSize}x{loci}"
-plot_dir = os.path.join(BASE_PATH, f"./plots/{dir_name}")
+output_path = os.path.join(config.BASE_PATH, "output/")
+os.makedirs(output_path, exist_ok=True)
+scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
+plot_dir = os.path.join(config.BASE_PATH, f"plots/{sampleSize}x{loci}")
 os.makedirs(plot_dir, exist_ok=True)
 
 

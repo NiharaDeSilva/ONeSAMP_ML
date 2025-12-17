@@ -1,11 +1,12 @@
-# config.py — shared global settings for ONeSAMP_ML
+from dataclasses import dataclass
 
-# Input file and experiment parameters
-fileName = None
-sampleSize = None
-numLoci = None
+@dataclass
+class Config:
+    fileName: str = None
+    sampleSize: int = None
+    numLoci: int = None
+    BASE_PATH: str = None
+    output_path: str = None
+    scalar_path: str = None
 
-# Paths
-BASE_PATH = None
-output_path = None
-scalar_path = None
+config = Config()

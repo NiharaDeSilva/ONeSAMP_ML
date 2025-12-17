@@ -9,7 +9,7 @@ import multiprocessing
 import concurrent.futures
 import sys
 import shutil
-import config
+from config import config
 from statistics import statisticsClass
 from sklearn.utils import resample
 from models.train import run_model_training
@@ -25,6 +25,10 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 directory = "temp"
 path = os.path.join("./", directory)
 results_path = os.path.join(BASE_PATH, "./output/")
+
+config.BASE_PATH = BASE_PATH
+config.output_path = results_path
+# config.scalar_path = "/path/to/scalars"
 
 POPULATION_GENERATOR = "./build/OneSamp"
 
