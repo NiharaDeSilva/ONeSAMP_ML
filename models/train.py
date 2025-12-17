@@ -22,11 +22,11 @@ sampleSize = config.sampleSize
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 #output_path = (f"/blue/boucher/suhashidesilva/Nihara/ONeSAMP_ML/output/genePop{sampleSize}x{loci}")
-output_path = os.path.join(BASE_PATH, "./output/")
+output_path = os.path.join(BASE_PATH, "output")
 os.makedirs(output_path, exist_ok=True)
 scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
 dir_name = f"{sampleSize}x{loci}"
-plot_dir = os.path.join(BASE_PATH, f"./plots/{dir_name}")
+plot_dir = os.path.join(BASE_PATH, f"plots/{dir_name}")
 os.makedirs(plot_dir, exist_ok=True)
 
 
