@@ -331,7 +331,11 @@ print("-----Population simulation time %s seconds -----" % (time.time() - start_
 # Assign input and all population stats to dataframes with column names
 allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 '''
-inputStatsList = pd.DataFrame([inputStatsList])
+
+
+
+inputStatsList = pd.DataFrame(textList, columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
+
 
 #run_model_training("all", allPopStatistics, inputStatsList)
 
