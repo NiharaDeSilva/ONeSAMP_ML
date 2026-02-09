@@ -10,15 +10,45 @@ from models.calibration import calibration_curves
 import copy
 from config import config
 
-loci = config.numLoci
-sampleSize = config.sampleSize
+#loci = config.numLoci
+#sampleSize = config.sampleSize
 
-output_path = os.path.join(config.BASE_PATH, "output/")
+
+def get_output_path():
+    path = os.path.join(config.BASE_PATH, "output_test_100/")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def get_loci():
+    if config.numLoci is None:
+        raise ValueError("config.numLoci not set yet")
+    return config.numLoci
+
+def get_sample_size():
+    if config.sampleSize is None:
+        raise ValueError("config.sampleSize not set yet")
+    return config.sampleSize
+
+def get_plot_dir():
+    loci = get_loci()
+    sampleSize = get_sample_size()
+
+    plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots_test_100/{sampleSize}x{loci}"
+    os.makedirs(plot_dir, exist_ok=True)
+    return plot_dir
+
+#scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
+#plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots/{sampleSize}x{loci}"
+#os.makedirs(plot_dir, exist_ok=True)
+
+'''
+output_path = config.output_path
 os.makedirs(output_path, exist_ok=True)
 scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
 plot_dir = os.path.join(config.BASE_PATH, f"plots/{sampleSize}x{loci}")
 os.makedirs(plot_dir, exist_ok=True)
-
+'''
 
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
 def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=300, alpha=0.05, model_name=""):
@@ -93,6 +123,7 @@ def predict_random_forest(model, X_predict):
 def evaluate_random_forest(model, X_test, y_test):
     # Evaluation metrics
     y_pred = model.predict(X_test)
+    plot_dir = get_plot_dir()
     calibration_curves(y_test, y_pred, "RandomForest", save_dir=plot_dir)
     mse = mean_squared_error(y_test, y_pred)
     rmse = np.sqrt(mse)
@@ -158,6 +189,7 @@ def predict_xgboost(model, Z_scaled, model_lower, model_upper):
 def evaluate_xgboost(model, X_test, y_test):
     # Predict on test set
     y_pred_test = model.predict(X_test)
+    plot_dir = get_plot_dir()
     calibration_curves(y_test, y_pred_test, "XGBoost", save_dir=plot_dir)
     mse = mean_squared_error(y_test, y_pred_test)
     rmse = np.sqrt(mse)
@@ -179,6 +211,7 @@ def evaluate_xgboost(model, X_test, y_test):
 
 def evaluate_lasso(model, X_test, y_test):
     y_pred = model.predict(X_test)
+    plot_dir = get_plot_dir()
     calibration_curves(y_test, y_pred, "lasso", save_dir=plot_dir)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
@@ -187,6 +220,7 @@ def evaluate_lasso(model, X_test, y_test):
 
 def evaluate_ridge(model, X_test, y_test):
     y_pred = model.predict(X_test)
+    plot_dir = get_plot_dir()
     calibration_curves(y_test, y_pred, "ridge", save_dir=plot_dir)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     mae = mean_absolute_error(y_test, y_pred)
@@ -246,7 +280,7 @@ def predict_and_evaluate_rf(model, X_train, y_train, X_test, y_test, Z_scaled):
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
     boot_stats = bootstrap_uncertainty(
         model, X_train, y_train, Z_scaled,
-        n_bootstrap=300, model_name="RandomForest"
+        n_bootstrap=500, model_name="RandomForest"
     )
     print_stats_inline("RF Prediction Stats", boot_stats)
     print("\nFeature importance")
@@ -258,7 +292,7 @@ def predict_and_evaluate_xgb(model, X_train, y_train, X_test, y_test, Z_scaled):
     metrics = evaluate_xgboost(model, X_test, y_test)
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
     boot_stats = bootstrap_uncertainty(
-        model, X_train, y_train, Z_scaled, n_bootstrap=300, model_name="XGBoost"
+        model, X_train, y_train, Z_scaled, n_bootstrap=500, model_name="XGBoost"
     )
     print_stats_inline("XGB Prediction Stats", boot_stats)
     get_feature_importance(model, feature_names)
@@ -274,7 +308,7 @@ def predict_and_evaluate_lasso(model, X_train, y_train, X_test, y_test, Z_scaled
     print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     # stats = predict_with_stats(model, X_test, y_test, Z_scaled)
     boot_stats = bootstrap_uncertainty(
-        model, X_train, y_train, Z_scaled, n_bootstrap=300, model_name="Lasso"
+        model, X_train, y_train, Z_scaled, n_bootstrap=500, model_name="Lasso"
     )
     print_stats_inline("Lasso Prediction Stats", boot_stats)
     get_coeficients_reg_models(model.coef_, feature_names)
@@ -285,7 +319,7 @@ def predict_and_evaluate_ridge(model, X_train, y_train, X_test, y_test, Z_scaled
     print(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     # stats = predict_with_stats(model, X_test, y_test, Z_scaled)
     boot_stats = bootstrap_uncertainty(
-        model, X_train, y_train, Z_scaled, n_bootstrap=300, model_name="Ridge"
+        model, X_train, y_train, Z_scaled, n_bootstrap=500, model_name="Ridge"
     )
     print_stats_inline("Ridge Prediction Stats", boot_stats)
     get_coeficients_reg_models(model.coef_, feature_names)

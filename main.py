@@ -13,6 +13,7 @@ from config import config
 from statistics import statisticsClass
 from sklearn.utils import resample
 from models.train import run_model_training
+from models.model_utils import run_all_models
 #sys.path.append("/blue/boucher/suhashidesilva/2025/WFsim")
 #from wfsim import run_simulation
 
@@ -21,10 +22,10 @@ t = 1
 DEBUG = 0  ## BOUCHER: Change this to 1 for debuggin mode
 OUTPUTFILENAME = "priors.txt"
 
-BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+BASE_PATH = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML"
 directory = "temp"
 path = os.path.join("./", directory)
-results_path = os.path.join(BASE_PATH, "./output/")
+results_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100/"
 
 config.BASE_PATH = BASE_PATH
 config.output_path = results_path
@@ -74,11 +75,11 @@ mutationRate = 0.000000012
 if (args.r):
     mutationRate = float(args.r)
 
-lowerNe = 20
+lowerNe = 50
 if (args.lNe):
     lowerNe = int(args.lNe)
 
-upperNe = 120
+upperNe = 150
 if (args.uNe):
     upperNe = int(args.uNe)
 
@@ -180,7 +181,7 @@ with open(inputPopStats, 'w') as fileINPUT:
     fileINPUT.write('\t'.join(textList[0:]) + '\t')
 fileINPUT.close()
 
-
+'''
 if (DEBUG):
     print("Finish calculation of statistics for input population")
 
@@ -295,8 +296,8 @@ if __name__ == '__main__':
     except RuntimeError:
         pass
     main()
-
-    '''
+'''
+'''
     multiprocessing.set_start_method('fork')
     # Parallel process the random populations and add to a list
     with concurrent.futures.ProcessPoolExecutor(max_workers=64) as executor:
@@ -305,8 +306,8 @@ if __name__ == '__main__':
                 results_list.append(result)
             except Exception as e:
                 print(f"Generated an exception: {e}")
-    '''
-
+'''
+'''
 try:
     shutil.rmtree(directory)
 except FileNotFoundError:
@@ -329,8 +330,14 @@ print("-----Population simulation time %s seconds -----" % (time.time() - start_
 
 # Assign input and all population stats to dataframes with column names
 allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
-inputStatsList = pd.DataFrame([inputStatsList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
+'''
+inputStatsList = pd.DataFrame([inputStatsList])
 
-run_model_training("all", allPopStatistics, inputStatsList)
+#run_model_training("all", allPopStatistics, inputStatsList)
+
+output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100"
+train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
+results = run_all_models(results_path, sampleSize, numLoci, inputStatsList, train_path)
+
 
 

@@ -1,5 +1,9 @@
 # Ignore output directories
 output/
 models/plots
+plots*
+output*
+samples*
+data_*
 # Ignore log files
 serial*

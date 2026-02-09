@@ -8,7 +8,7 @@ from sklearn.metrics import r2_score
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import os
 
-save_dir = "plots"
+save_dir = "plots_100_2"
 def ensure_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -90,6 +90,11 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     plt.close()
 
 
+    TITLE_SIZE = 22
+    LABEL_SIZE = 20
+    TICK_SIZE = 18
+    LEGEND_SIZE = 20
+
     # ---------------------------------------------------------
     # (4) LOWESS Smooth Calibration Curve
     # ---------------------------------------------------------
@@ -100,10 +105,14 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     plt.plot(lowess_curve[:, 0], lowess_curve[:, 1], "r-", linewidth=2, label="LOWESS")
     plt.plot(lims, lims, "k--", label="Perfect Calibration")
 
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-    plt.title(f"{model_name}: LOWESS Calibration Curve")
-    plt.legend()
+    plt.xlabel("Predicted",fontsize=LABEL_SIZE)
+    plt.ylabel("True", fontsize=LABEL_SIZE)
+    
+    plt.xticks(fontsize=TICK_SIZE)
+    plt.yticks(fontsize=TICK_SIZE)
+
+    plt.title(f"{model_name}: LOWESS Calibration Curve", fontsize=TITLE_SIZE)
+    plt.legend(fontsize=LEGEND_SIZE)
     plt.tight_layout()
     plt.savefig(f"{prefix}_lowess.png", dpi=300)
     plt.close()
@@ -125,10 +134,14 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     plt.plot(pred, pred_fit, "r-", linewidth=2, label=f"Fit: y = {coef:.3f}x + {intercept:.3f}")
     plt.plot(lims, lims, "k--", label="Perfect Calibration")
 
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
+    plt.xlabel("Predicted", fontsize=LABEL_SIZE)
+    plt.ylabel("True", fontsize=LABEL_SIZE)
     plt.title(f"{model_name}: Linear Calibration Fit (R² = {r2:.3f})")
-    plt.legend()
+    
+    plt.xticks(fontsize=TICK_SIZE)
+    plt.yticks(fontsize=TICK_SIZE)
+
+    plt.legend(fontsize=LEGEND_SIZE)
     plt.tight_layout()
     plt.savefig(f"{prefix}_linear_fit.png", dpi=300)
     plt.close()

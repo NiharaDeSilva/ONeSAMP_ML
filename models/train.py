@@ -4,7 +4,7 @@ import time
 import numpy as np
 import pandas as pd
 import joblib
-from sklearn.model_selection import train_test_split, cross_val_score, KFold
+from sklearn.model_selection import train_test_split, cross_val_score, KFold, cross_validate
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
@@ -13,17 +13,71 @@ from sklearn.linear_model import Ridge, Lasso
 from sklearn.utils import resample  
 from statistics import statisticsClass
 from config import config
+from sklearn.pipeline import Pipeline
 from models.predict import predict_and_evaluate_rf, predict_and_evaluate_xgb, predict_and_evaluate_lasso, predict_and_evaluate_ridge
 from models.calibration import calibration_curves
 
-loci = config.numLoci
-sampleSize = config.sampleSize
+#loci = config.numLoci
+#sampleSize = config.sampleSize
+output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100"
 
-output_path = os.path.join(config.BASE_PATH, "output/")
-os.makedirs(output_path, exist_ok=True)
-scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
-plot_dir = os.path.join(config.BASE_PATH, f"plots/{sampleSize}x{loci}")
-os.makedirs(plot_dir, exist_ok=True)
+def get_output_path():
+    path = os.path.join(config.BASE_PATH, "output_test_100/")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def get_loci():
+    if config.numLoci is None:
+        raise ValueError("config.numLoci not set yet")
+    return config.numLoci
+
+def get_sample_size():
+    if config.sampleSize is None:
+        raise ValueError("config.sampleSize not set yet")
+    return config.sampleSize
+
+def get_plot_dir():
+    loci = get_loci()
+    sampleSize = get_sample_size()
+
+    plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots_test_100/{sampleSize}x{loci}"
+    os.makedirs(plot_dir, exist_ok=True)
+    return plot_dir
+
+
+def get_rf_path():
+    sampleSize = get_sample_size()
+    loci = get_loci()
+    return os.path.join(output_path, f"rf_model_{sampleSize}x{loci}.joblib")
+
+def get_xgb_path():
+    sampleSize = get_sample_size()
+    loci = get_loci()
+    return os.path.join(output_path, f"xgb_model_{sampleSize}x{loci}.joblib")
+
+def get_lasso_path():
+    sampleSize = get_sample_size()
+    loci = get_loci()
+    return os.path.join(output_path, f"lasso_model_{sampleSize}x{loci}.joblib")
+
+def get_ridge_path():
+    sampleSize = get_sample_size()
+    loci = get_loci()
+    return os.path.join(output_path, f"ridge_model_{sampleSize}x{loci}.joblib")
+
+def get_train_data_paths():
+    sampleSize = get_sample_size()
+    loci = get_loci()
+    X_train_path = os.path.join(output_path, f"X_train_scaled_{sampleSize}x{loci}.joblib")
+    y_train_path = os.path.join(output_path, f"y_train_{sampleSize}x{loci}.joblib")
+    return X_train_path, y_train_path
+
+
+#output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output"
+#scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
+#plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots/{sampleSize}x{loci}"
+#os.makedirs(plot_dir, exist_ok=True)
 
 
 # -----------------------------------
@@ -56,7 +110,9 @@ def get_oof_predictions(model_constructor, X_train_scaled, y_train, model_name):
         oof_pred[val_idx] = preds
         oof_folds[val_idx] = fold_id
 
-    # Save OOF calibration curves
+    plot_dir = get_plot_dir()
+
+  # Save OOF calibration curves
     calibration_curves(
         true=oof_true,
         pred=oof_pred,
@@ -70,10 +126,73 @@ def get_oof_predictions(model_constructor, X_train_scaled, y_train, model_name):
 
 
 # -----------------------------------
+# CV results
+# -----------------------------------
+
+
+def rmse_scorer(y_true, y_pred):
+    return np.sqrt(mean_squared_error(y_true, y_pred))
+
+def get_cv_results_all_models(X_train, y_train, cv_folds=5):
+    kf = KFold(n_splits=cv_folds, shuffle=True, random_state=42)
+
+    models = {
+        "Lasso": Lasso(alpha=0.01, max_iter=10000),
+        "Ridge": Ridge(alpha=10),
+        "RandomForest": RandomForestRegressor(
+            n_estimators=5000, max_depth=40, min_samples_split=2, min_samples_leaf=2,
+            max_features="log2", bootstrap=True, random_state=42, n_jobs=-1
+        ),
+        "XGBoost": XGBRegressor(
+            objective="reg:squarederror", n_estimators=800, learning_rate=0.01,
+            max_depth=8, min_child_weight=3, subsample=0.6, colsample_bytree=0.8,
+            random_state=42, n_jobs=-1
+        )
+    }
+
+    scoring = {
+        "rmse": make_scorer(rmse_scorer, greater_is_better=False),  # negative by convention
+        "mae": make_scorer(mean_absolute_error, greater_is_better=False),
+        "r2": "r2"
+    }
+
+    results = {}
+
+    for name, model in models.items():
+        pipe = Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", model)
+        ])
+
+        cv = cross_validate(pipe, X_train, y_train, cv=kf, scoring=scoring)
+
+        # flip rmse/mae back to positive
+        rmse = -cv["test_rmse"]
+        mae = -cv["test_mae"]
+        r2 = cv["test_r2"]
+
+        results[name] = {
+            "rmse_mean": rmse.mean(), "rmse_std": rmse.std(),
+            "mae_mean": mae.mean(), "mae_std": mae.std(),
+            "r2_mean": r2.mean(), "r2_std": r2.std(),
+        }
+
+        print(f"{name} ({cv_folds}-Fold CV) => "
+              f"RMSE: {rmse.mean():.4f} ± {rmse.std():.4f}, "
+              f"MAE: {mae.mean():.4f} ± {mae.std():.4f}, "
+              f"R²: {r2.mean():.4f} ± {r2.std():.4f}")
+
+    return results
+
+
+
+# -----------------------------------
 # Random Forest Regression
 # -----------------------------------
 
-rf_path = os.path.join(output_path, f"rf_model_{sampleSize}x{loci}.joblib")
+#loci = get_loci()
+#sampleSize = get_sample_size()
+#rf_path = os.path.join(output_path, f"rf_model_{sampleSize}x{loci}.joblib")
 
 """
     Train a Random Forest regressor with fixed hyperparameters and save both model and scaler.
@@ -109,7 +228,7 @@ def train_random_forest(X_train_scaled, y_train_np, rf_path):
 # XGBoost
 # -----------------------------------
 
-xgb_path = os.path.join(output_path, f"xgb_model_{sampleSize}x{loci}.joblib")
+#xgb_path = os.path.join(output_path, f"xgb_model_{sampleSize}x{loci}.joblib")
 # model_lower_path = os.path.join(output_path, f"xgb_model_lower_{sampleSize}x{loci}.joblib")
 # model_upper_path = os.path.join(output_path, f"xgb_model_upper_{sampleSize}x{loci}.joblib")
 
@@ -118,7 +237,7 @@ def train_xgboost(X_train_scaled, y_train_np, xgb_path):
     def xgb_constructor():
         return XGBRegressor(
             objective='reg:squarederror',
-            n_estimators=5000,
+            n_estimators=800,
             learning_rate=0.01,
             max_depth=8,
             min_child_weight=3,
@@ -161,11 +280,11 @@ def train_xgboost(X_train_scaled, y_train_np, xgb_path):
 # Lasso & Ridge Regression
 # -------------------------------
 
-X_train_path = os.path.join(output_path, f"X_train_scaled_{sampleSize}x{loci}.joblib")
-y_train_path = os.path.join(output_path, f"y_train_{sampleSize}x{loci}.joblib")
+#X_train_path = os.path.join(output_path, f"X_train_scaled_{sampleSize}x{loci}.joblib")
+#y_train_path = os.path.join(output_path, f"y_train_{sampleSize}x{loci}.joblib")
 
-ridge_path = os.path.join(output_path, f"ridge_model_{sampleSize}x{loci}.joblib")
-lasso_path = os.path.join(output_path, f"lasso_model_{sampleSize}x{loci}.joblib")
+#ridge_path = os.path.join(output_path, f"ridge_model_{sampleSize}x{loci}.joblib")
+#lasso_path = os.path.join(output_path, f"lasso_model_{sampleSize}x{loci}.joblib")
 
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
 
@@ -206,19 +325,23 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
     X = np.array(allPopStatistics[feature_cols].astype(float).to_numpy())
     y = np.array([float(value) for value in allPopStatistics[target_col] if float(value) > 0])
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=40)
+    cv_results = get_cv_results_all_models(X_train, y_train, cv_folds=5)
 
     # --- Normalize ---
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     Z_scaled = scaler.transform(Z)
-
+    
+    loci = get_loci()
+    sampleSize = get_sample_size()
     joblib.dump(scaler, os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib"))
 
     # --- Define model runners ---
     def run_rf():
         print("\n------------- RANDOM FOREST -------------")
         start = time.time()
+        rf_path = get_rf_path()
         model = train_random_forest(X_train_scaled, y_train, rf_path=rf_path)
         predict_and_evaluate_rf(model, X_train_scaled, y_train, X_test_scaled, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
@@ -227,6 +350,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
     def run_xgb():
         print("\n------------- XGBOOST ------------------")
         start = time.time()
+        xgb_path = get_xgb_path()
         model = train_xgboost(X_train_scaled, y_train, xgb_path=xgb_path)
         # model_lower, model_upper = train_xgboost_quantile(X_train_scaled, y_train, model_lower_path, model_upper_path, quantile_alpha=0.05)
         predict_and_evaluate_xgb(model, X_train_scaled, y_train, X_test_scaled, y_test, Z_scaled)
@@ -236,6 +360,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
     def run_lasso():
         print("\n------------- LASSO REGRESSION ------------------")
         start = time.time()
+        lasso_path = get_lasso_path()
         model = train_lasso(X_train_scaled, y_train, lasso_path=lasso_path)
         predict_and_evaluate_lasso(model, X_train_scaled, y_train, X_test_scaled, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
@@ -244,6 +369,7 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
     def run_ridge():
         print("\n------------- RIDGE REGRESSION ------------------")
         start = time.time()
+        ridge_path = get_ridge_path()
         model = train_ridge(X_train_scaled, y_train, ridge_path=ridge_path)
         predict_and_evaluate_ridge(model, X_train_scaled, y_train, X_test_scaled, y_test, Z_scaled)
         print(f"Time taken: {time.time() - start:.2f} seconds")
