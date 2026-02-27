@@ -135,7 +135,7 @@ def load_lasso_model(lasso_path, Z, scaler_path, train_path):
         y_train=y_train,
         X_point=Z_scaled,
         n_bootstrap=500,
-        alpha=0.05,
+        alpha=0.01,
         model_name="Lasso"
     )
     return lasso_prediction
@@ -158,7 +158,7 @@ def load_ridge_model(ridge_path, Z, scaler_path, train_path):
         y_train=y_train,
         X_point=Z_scaled,
         n_bootstrap=500,
-        alpha=0.05,
+        alpha=10,
         model_name="Ridge"
     )
     return ridge_prediction
@@ -181,7 +181,7 @@ def run_all_models(output_path, sampleSize, loci, Z, train_path):
         try:
             pred = fn(path, Z, scaler_path, train_path)
             results.append(pred)
-            print(f"{pred['model']}: mean={pred['mean']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+            print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
         except FileNotFoundError as e:
             print(f"[Skip] {e}")
 

@@ -334,7 +334,17 @@ allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium
 
 
 
-inputStatsList = pd.DataFrame(textList, columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
+#inputStatsList = pd.DataFrame(textList, columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
+inputStatsList = pd.DataFrame(
+    [[float(x) for x in textList]],
+    columns=[
+        'Gametic_equilibrium',
+        'Mlocus_homozegosity_mean',
+        'Mlocus_homozegosity_variance',
+        'Fix_index',
+        'Emean_exhyt'
+    ]
+)
 
 
 #run_model_training("all", allPopStatistics, inputStatsList)
