@@ -15,7 +15,7 @@ Handles **end-to-end training of machine learning models**, including:
 
 **Supported models:**
 - Random Forest
-- XGBoost (standard and quantile-based)
+- XGBoost
 - Lasso Regression
 - Ridge Regression
 

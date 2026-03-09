@@ -5,6 +5,10 @@ plots*
 output*
 samples*
 data_*
+output_*
+plots_*
 statCal_files
+
+__pycache**
 # Ignore log files
 serial*

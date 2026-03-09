@@ -12,36 +12,37 @@ from xgboost import XGBRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.utils import resample  
 from statistics import statisticsClass
-from config import config
 from sklearn.pipeline import Pipeline
 from models.predict import predict_and_evaluate_rf, predict_and_evaluate_xgb, predict_and_evaluate_lasso, predict_and_evaluate_ridge
 from models.calibration import calibration_curves
+import config as cfg
 
-#loci = config.numLoci
-#sampleSize = config.sampleSize
-output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100"
+loci = cfg.config.numLoci
+sampleSize = cfg.config.sampleSize
+output_path = cfg.config.OUTPUT_PATH
+
 
 def get_output_path():
-    path = os.path.join(config.BASE_PATH, "output_test_100/")
+    path = os.path.join(cfg.config.BASE_PATH, "output_test_100/")
     os.makedirs(path, exist_ok=True)
     return path
 
 
 def get_loci():
-    if config.numLoci is None:
-        raise ValueError("config.numLoci not set yet")
-    return config.numLoci
+    if cfg.config.numLoci is None:
+        raise ValueError("cfg.config.numLoci not set yet")
+    return cfg.config.numLoci
 
 def get_sample_size():
-    if config.sampleSize is None:
-        raise ValueError("config.sampleSize not set yet")
-    return config.sampleSize
+    if cfg.config.sampleSize is None:
+        raise ValueError("cfg.config.sampleSize not set yet")
+    return cfg.config.sampleSize
 
 def get_plot_dir():
     loci = get_loci()
     sampleSize = get_sample_size()
 
-    plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots_test_100/{sampleSize}x{loci}"
+    plot_dir = f"plots_test_100/{sampleSize}x{loci}"
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir
 
@@ -317,9 +318,10 @@ def train_ridge(X_train_scaled, y_train, ridge_path):
 # Run Model Training
 # -------------------------------
 
-def run_model_training(model_selection, allPopStatistics, inputStatsList):
+def run_model_training(model_selection, allPopStatistics, inputStatsList, loci, sampleSize):
     feature_cols = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
     target_col = 'Ne'
+    print(cfg.config.OUTPUT_PATH)
 
     Z = np.array(inputStatsList[feature_cols].astype(float).to_numpy())
     X = np.array(allPopStatistics[feature_cols].astype(float).to_numpy())
@@ -333,8 +335,8 @@ def run_model_training(model_selection, allPopStatistics, inputStatsList):
     X_test_scaled = scaler.transform(X_test)
     Z_scaled = scaler.transform(Z)
     
-    loci = get_loci()
-    sampleSize = get_sample_size()
+    # loci = get_loci()
+    # sampleSize = get_sample_size()
     joblib.dump(scaler, os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib"))
 
     # --- Define model runners ---

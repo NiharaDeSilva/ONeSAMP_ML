@@ -34,7 +34,7 @@ def get_plot_dir():
     loci = get_loci()
     sampleSize = get_sample_size()
 
-    plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots_test_100/{sampleSize}x{loci}"
+    plot_dir = f"plots_test_100/{sampleSize}x{loci}"
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir
 
