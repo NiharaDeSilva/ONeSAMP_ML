@@ -6,6 +6,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, m
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score, train_test_split
 import joblib
+import config as cfg
 from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
@@ -16,14 +17,14 @@ def get_output_path():
 
 
 def get_loci():
-    if config.numLoci is None:
-        raise ValueError("config.numLoci not set yet")
-    return config.numLoci
+    if cfg.config.numLoci is None:
+        raise ValueError("cfg.config.numLoci not set yet")
+    return cfg.config.numLoci
 
 def get_sample_size():
-    if config.sampleSize is None:
-        raise ValueError("config.sampleSize not set yet")
-    return config.sampleSize
+    if cfg.config.sampleSize is None:
+        raise ValueError("cfg.config.sampleSize not set yet")
+    return cfg.config.sampleSize
 
 def get_plot_dir():
     loci = get_loci()
@@ -53,7 +54,9 @@ def load_training_data(train_path):
     return X_train, y_train
 
 
+
 output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_100_4400"
+
 # Predict again using new Z
 #Z_scaled = scaler.transform(Z)
 #xgb_prediction = xgb_model.predict(Z_scaled)

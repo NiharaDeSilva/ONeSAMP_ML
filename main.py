@@ -9,29 +9,30 @@ import multiprocessing
 import concurrent.futures
 import sys
 import shutil
-from config import config
 from statistics import statisticsClass
 from sklearn.utils import resample
 from models.train import run_model_training
 from models.model_utils import run_all_models
 #sys.path.append("/blue/boucher/suhashidesilva/2025/WFsim")
 #from wfsim import run_simulation
+import config as cfg
+from models.tuning import train_and_tune_models
 
 NUMBER_OF_STATISTICS = 5
 t = 1
 DEBUG = 0  ## BOUCHER: Change this to 1 for debuggin mode
-OUTPUTFILENAME = "priors.txt"
+# OUTPUTFILENAME = "priors.txt"
 
-BASE_PATH = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML"
+
 directory = "temp"
+
 path = os.path.join("./", directory)
-results_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_100_4400/"
+results_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning/"
+BASE_PATH = cfg.BASE_PATH
+path = cfg.TEMP_DIR
+results_path = cfg.OUTPUT_PATH
+POPULATION_GENERATOR = cfg.POPULATION_GENERATOR
 
-config.BASE_PATH = BASE_PATH
-config.output_path = results_path
-# config.scalar_path = "/path/to/scalars"
-
-POPULATION_GENERATOR = "./build/OneSamp"
 
 def getName(filename):
     (_, filename) = os.path.split(filename)
@@ -56,6 +57,9 @@ parser.add_argument("--l", type=float, help="Missing data for loci")
 parser.add_argument("--o", type=str, help="The File Name")
 parser.add_argument("--t", type=int, help="Repeat times")
 parser.add_argument("--n", type=bool, help="whether to filter the monomorphic loci", default=False)
+parser.add_argument("--al", type=str, help="allpop stats file")
+# parser.add_argument("--ip", type=str, help="inputpop stats file")
+
 # parser.add_argument("--md", type=str, help="Model Name")
 
 args = parser.parse_args()
@@ -129,7 +133,7 @@ if (args.l):
 
 rangeDuration = "%f,%f" % (lowerDuration, upperDuration)
 
-fileName = "oneSampIn"
+fileName = "data_100/genePop100x1000_1"
 
 if (args.o):
     fileName = str(args.o)
@@ -141,10 +145,12 @@ if (DEBUG):
 
 rangeTheta = "%f,%f" % (lowerTheta, upperTheta)
 
+allPopStats_path = "data_100/allPopStats_genePop100x1000"
+if (args.al):
+    allPopStats_path = str(args.al)
 
-config.fileName = args.o or "oneSampIn"
-config.BASE_PATH = os.path.dirname(os.path.realpath(__file__))
-config.output_path = results_path
+# if (args.ip):
+#     inputStats_path = str(args.ip)
 
 #########################################
 # STARTING INITIAL POPULATION
@@ -167,15 +173,16 @@ inputFileStatistics.test_stat4()
 
 numLoci = inputFileStatistics.numLoci
 sampleSize = inputFileStatistics.sampleSize
-config.numLoci = numLoci
-config.sampleSize = sampleSize
+
+cfg.config.numLoci = numLoci
+cfg.config.sampleSize = sampleSize
 
 ##Creating input file & List with intial statistics
 textList = [str(inputFileStatistics.stat1_new), str(inputFileStatistics.stat2), str(inputFileStatistics.stat3),
              str(inputFileStatistics.stat4), str(inputFileStatistics.stat5)]
 inputStatsList = textList
 
-
+'''
 inputPopStats = results_path + "inputPopStats_" + getName(fileName)
 with open(inputPopStats, 'w') as fileINPUT:
     fileINPUT.write('\t'.join(textList[0:]) + '\t')
@@ -323,24 +330,39 @@ allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium
 inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 
 '''
-inputStatsList = pd.DataFrame(
-    [[float(x) for x in textList]],
-    columns=[
-        'Gametic_equilibrium',
-        'Mlocus_homozegosity_mean',
-        'Mlocus_homozegosity_variance',
-        'Fix_index',
-        'Emean_exhyt'
-    ]
-)
-'''
-
-run_model_training("all", allPopStatistics, inputStatsList)
-
-'''
-output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100"
-train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
-results = run_all_models(results_path, sampleSize, numLoci, inputStatsList, train_path)
-'''
 
 
+# =========================================================
+# TUNE MODELS
+# =========================================================
+
+if __name__ == "__main__":
+    input_sample_size ="f{sampleSize}x{numLoci}"
+    allPopStatistics = pd.read_csv(allPopStats_path, sep='\t', header=None, names=[ 'Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
+    results = train_and_tune_models(
+        allPopStatistics=allPopStatistics,
+        input_text_list=textList,
+        input_sample_size=input_sample_size,
+        output_dir=results_path,
+        n_splits=5,
+        random_state=42)
+
+    print(results["results_df"])
+
+# =========================================================
+# TRAIN MODEL
+# =========================================================
+
+# inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium','Mlocus_homozegosity_mean','Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
+# allPopStatistics = pd.read_csv(allPopStats_path, sep='\t', header=None, names=[ 'Ne', 'Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
+#
+#
+# run_model_training('all', allPopStatistics, inputStatsList, numLoci, sampleSize)
+
+# =========================================================
+# INFERENCE
+# =========================================================
+
+# output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100"
+# train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
+# results = run_all_models(results_path, sampleSize, numLoci, inputStatsList, train_path)
