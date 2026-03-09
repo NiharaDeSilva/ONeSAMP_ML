@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
 def get_output_path():
-    path = os.path.join(config.BASE_PATH, "output_test_100/")
+    path = os.path.join(config.BASE_PATH, "output_100_4400/")
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -29,7 +29,7 @@ def get_plot_dir():
     loci = get_loci()
     sampleSize = get_sample_size()
 
-    plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots_test_100/{sampleSize}x{loci}"
+    plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots_100_4400/{sampleSize}x{loci}"
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir
 
@@ -53,7 +53,7 @@ def load_training_data(train_path):
     return X_train, y_train
 
 
-output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100"
+output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_100_4400"
 # Predict again using new Z
 #Z_scaled = scaler.transform(Z)
 #xgb_prediction = xgb_model.predict(Z_scaled)

@@ -8,7 +8,7 @@ from sklearn.metrics import r2_score
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import os
 
-save_dir = "plots_100_2"
+save_dir = "plots_100_4400"
 def ensure_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
