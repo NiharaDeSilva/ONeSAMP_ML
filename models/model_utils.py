@@ -11,9 +11,9 @@ from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
 def get_output_path():
-    path = os.path.join(cfg.config.BASE_PATH, "output_test_100/")
-    os.makedirs(path, exist_ok=True)
-    return path
+    if cfg.config.OUTPUT_PATH is None:
+        raise ValueError("cfg.config.OUTPUT_PATH not set yet")
+    return cfg.config.OUTPUT_PATH
 
 
 def get_loci():
@@ -30,18 +30,14 @@ def get_plot_dir():
     loci = get_loci()
     sampleSize = get_sample_size()
 
-    plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots_test_100/{sampleSize}x{loci}"
+    if cfg.config.PLOT_DIR is None:
+        raise ValueError("cfg.config.PLOT_DIR not set yet")
+
+    plot_dir = os.path.join(cfg.config.PLOT_DIR, f"{sampleSize}x{loci}")
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir
 
 
-FEATURES = [
-    'Gametic_equilibrium',
-    'Mlocus_homozegosity_mean',
-    'Mlocus_homozegosity_variance',
-    'Fix_index',
-    'Emean_exhyt'
-]
 
 def load_training_data(train_path):
     with open(train_path, "r") as f:
@@ -54,20 +50,6 @@ def load_training_data(train_path):
     return X_train, y_train
 
 
-output_path = "output_test_100"
-# Predict again using new Z
-#Z_scaled = scaler.transform(Z)
-#xgb_prediction = xgb_model.predict(Z_scaled)
-
-#train_path = os.path.join(output_path,f'allPopStats_genePop{sampleSize}x{loci}')
-#scaler_path = os.path.join(output_path, f'scaler_{sampleSize}x{loci}.joblib')
-#rf_path = os.path.join(output_path, f"rf_model_{sampleSize}x{loci}.joblib")
-#xgb_path = os.path.join(output_path, f"xgb_model_{sampleSize}x{loci}.joblib")
-#lasso_path = os.path.join(output_path, f"lasso_model_{sampleSize}x{loci}.joblib")
-#ridge_path = os.path.join(output_path, f"ridge_model_{sampleSize}x{loci}.joblib")
-
-
-
 def load_scaler(scaler_path):
     if os.path.exists(scaler_path):
         return joblib.load(scaler_path)
@@ -75,44 +57,41 @@ def load_scaler(scaler_path):
         raise FileNotFoundError(f"Scaler file {scaler_path} does not exist.")
 
 
-def load_rf_model(rf_path, Z, scaler_path, train_path):
+def load_rf_model(rf_path, Z, train_path):
     if not os.path.exists(rf_path):
         raise FileNotFoundError(f"Model file {rf_path} does not exist.")
 
-    scaler = load_scaler(scaler_path)
     rf_model = joblib.load(rf_path)
 
     X_train, y_train = load_training_data(train_path)
-    X_train_s = scaler.transform(X_train)
-    Z_scaled = scaler.transform(Z.values)
+    # X_train_s = scaler.transform(X_train)
+    # Z_scaled = scaler.transform(Z.values)
 
     rf_prediction = bootstrap_uncertainty(
         model=rf_model,
-        X_train=X_train_s,
+        X_train=X_train,
         y_train=y_train,
-        X_point=Z_scaled,
+        X_point=Z,
         n_bootstrap=500,
         model_name="RandomForest"
     )
     return rf_prediction
 
 
-def load_xgb_model(xgb_path, Z, scaler_path, train_path):
+def load_xgb_model(xgb_path, Z, train_path):
     if not os.path.exists(xgb_path):
         raise FileNotFoundError(f"Model file {xgb_path} does not exist.")
 
-    scaler = load_scaler(scaler_path)
-    xgb_model = joblib.load(xgb_path)
-
     X_train, y_train = load_training_data(train_path)
-    X_train_s = scaler.transform(X_train)
-    Z_scaled = scaler.transform(Z.values)
+    # X_train_s = scaler.transform(X_train)
+    # Z_scaled = scaler.transform(Z.values)
 
+    xgb_model = joblib.load(xgb_path)
     xgb_prediction = bootstrap_uncertainty(
         model=xgb_model,
-        X_train=X_train_s,
+        X_train=X_train,
         y_train=y_train,
-        X_point=Z_scaled,
+        X_point=Z,
         n_bootstrap=500,
         model_name="XGBoost"
     )
@@ -165,26 +144,45 @@ def load_ridge_model(ridge_path, Z, scaler_path, train_path):
     return ridge_prediction
 
 
-def run_all_models(output_path, sampleSize, loci, Z, train_path):
-    scaler_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
-    rf_path     = os.path.join(output_path, f"rf_model_{sampleSize}x{loci}.joblib")
-    xgb_path    = os.path.join(output_path, f"xgb_model_{sampleSize}x{loci}.joblib")
-    lasso_path  = os.path.join(output_path, f"lasso_model_{sampleSize}x{loci}.joblib")
-    ridge_path  = os.path.join(output_path, f"ridge_model_{sampleSize}x{loci}.joblib")
-
+def run_all_models(sampleSize, loci, Z, train_path):
+    scaler_path = os.path.join(cfg.config.OUTPUT_PATH, f"scaler_{sampleSize}x{loci}.joblib")
+    rf_path     = os.path.join(cfg.config.OUTPUT_PATH, f"rf_model_{sampleSize}x{loci}.joblib")
+    xgb_path    = os.path.join(cfg.config.OUTPUT_PATH, f"xgb_model_{sampleSize}x{loci}.joblib")
+    lasso_path  = os.path.join(cfg.config.OUTPUT_PATH, f"lasso_model_{sampleSize}x{loci}.joblib")
+    ridge_path  = os.path.join(cfg.config.OUTPUT_PATH, f"ridge_model_{sampleSize}x{loci}.joblib")
     results = []
-    for fn, path in [
-        (load_rf_model, rf_path),
-        (load_xgb_model, xgb_path),
-        (load_lasso_model, lasso_path),
-        (load_ridge_model, ridge_path),
-    ]:
-        try:
-            pred = fn(path, Z, scaler_path, train_path)
-            results.append(pred)
-            print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
-        except FileNotFoundError as e:
-            print(f"[Skip] {e}")
+
+    # Random Forest (raw input, no scaler)
+    try:
+        pred = load_rf_model(rf_path, Z, train_path)
+        results.append(pred)
+        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+    except FileNotFoundError as e:
+        print(f"[Skip] {e}")
+
+    # XGBoost (raw input, no scaler)
+    try:
+        pred = load_xgb_model(xgb_path, Z, train_path)
+        results.append(pred)
+        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+    except FileNotFoundError as e:
+        print(f"[Skip] {e}")
+
+    # Lasso (scaled input)
+    try:
+        pred = load_lasso_model(lasso_path, Z, scaler_path, train_path)
+        results.append(pred)
+        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+    except FileNotFoundError as e:
+        print(f"[Skip] {e}")
+
+    # Ridge (scaled input)
+    try:
+        pred = load_ridge_model(ridge_path, Z, scaler_path, train_path)
+        results.append(pred)
+        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+    except FileNotFoundError as e:
+        print(f"[Skip] {e}")
 
     return results
 

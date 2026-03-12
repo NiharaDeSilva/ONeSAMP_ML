@@ -27,7 +27,7 @@ DEBUG = 0  ## BOUCHER: Change this to 1 for debuggin mode
 directory = "temp"
 BASE_PATH = cfg.BASE_PATH
 path = cfg.TEMP_DIR
-results_path = cfg.OUTPUT_PATH
+output_path = cfg.OUTPUT_PATH
 POPULATION_GENERATOR = cfg.POPULATION_GENERATOR
 
 
@@ -180,7 +180,7 @@ textList = [str(inputFileStatistics.stat1_new), str(inputFileStatistics.stat2), 
 inputStatsList = textList
 
 '''
-inputPopStats = results_path + "inputPopStats_" + getName(fileName)
+inputPopStats = output_path + "inputPopStats_" + getName(fileName)
 with open(inputPopStats, 'w') as fileINPUT:
     fileINPUT.write('\t'.join(textList[0:]) + '\t')
 fileINPUT.close()
@@ -317,7 +317,7 @@ try:
 except FileNotFoundError:
     print(f"Directory '{directory}' not found.")
 
-allPopStats = results_path + "allPopStats_" + getName(fileName)
+allPopStats = output_path + "allPopStats_" + getName(fileName)
 with open(allPopStats, 'w') as file:
     for result in results_list:
         file.write('\t'.join(map(str, result)) + '\n')
@@ -349,7 +349,7 @@ if __name__ == "__main__":
         allPopStatistics=allPopStatistics,
         input_text_list=textList,
         input_sample_size=input_sample_size,
-        output_dir=results_path,
+        output_dir=output_path,
         n_splits=5,
         random_state=42)
 
@@ -362,14 +362,11 @@ if __name__ == "__main__":
 
 # inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium','Mlocus_homozegosity_mean','Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
 # allPopStatistics = pd.read_csv(allPopStats_path, sep='\t', header=None, names=[ 'Ne', 'Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
-#
-#
 # run_model_training('all', allPopStatistics, inputStatsList, numLoci, sampleSize)
 
 # =========================================================
 # INFERENCE
 # =========================================================
 
-# output_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_test_100"
 # train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
-# results = run_all_models(results_path, sampleSize, numLoci, inputStatsList, train_path)
+# run_all_models(sampleSize, numLoci, inputStatsList, train_path)

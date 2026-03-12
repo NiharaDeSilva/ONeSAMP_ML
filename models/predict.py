@@ -8,50 +8,20 @@ from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
 from models.calibration import calibration_curves
 import copy
-from config import config
+import config as cfg
 
-#loci = config.numLoci
-#sampleSize = config.sampleSize
+loci = cfg.config.numLoci
+sampleSize = cfg.config.sampleSize
+output_path = cfg.config.OUTPUT_PATH
 
-
-def get_output_path():
-    path = os.path.join(config.BASE_PATH, "output_test_100/")
-    os.makedirs(path, exist_ok=True)
-    return path
-
-
-def get_loci():
-    if config.numLoci is None:
-        raise ValueError("config.numLoci not set yet")
-    return config.numLoci
-
-def get_sample_size():
-    if config.sampleSize is None:
-        raise ValueError("config.sampleSize not set yet")
-    return config.sampleSize
 
 def get_plot_dir():
-    loci = get_loci()
-    sampleSize = get_sample_size()
-
-    plot_dir = f"plots_test_100/{sampleSize}x{loci}"
+    plot_dir = os.path.join(cfg.config.PLOT_DIR, f"{sampleSize}x{loci}")
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir
 
-#scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
-#plot_dir = f"/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/plots/{sampleSize}x{loci}"
-#os.makedirs(plot_dir, exist_ok=True)
-
-'''
-output_path = config.output_path
-os.makedirs(output_path, exist_ok=True)
-scalar_path = os.path.join(output_path, f"scaler_{sampleSize}x{loci}.joblib")
-plot_dir = os.path.join(config.BASE_PATH, f"plots/{sampleSize}x{loci}")
-os.makedirs(plot_dir, exist_ok=True)
-'''
-
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
-def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=300, alpha=0.05, model_name=""):
+def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=500, alpha=0.05, model_name=""):
     """
     General non-parametric bootstrap uncertainty estimator.
     Returns CI, mean, median, min, max, std.
@@ -99,25 +69,25 @@ def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=300, alp
 # Random Forest Regression
 # -----------------------------------    
 
-def predict_random_forest(model, X_predict):
-    # Confidence Interval Prediction on X_predict
-    tree_preds = np.array([tree.predict(X_predict) for tree in model.estimators_])
-    median_pred = np.median(tree_preds)
-    mean_pred = np.mean(tree_preds)
-    min_pred = np.min(tree_preds)
-    max_pred = np.max(tree_preds)
-    lower_ci = np.percentile(tree_preds, 2.5)
-    upper_ci = np.percentile(tree_preds, 97.5)
-
-    predictions = {
-        "mean": mean_pred,
-        "median": median_pred,
-        "min": min_pred,
-        "max": max_pred,
-        "lower_95ci": lower_ci,
-        "upper_95ci": upper_ci
-    }
-    return predictions
+# def predict_random_forest(model, X_predict):
+#     # Confidence Interval Prediction on X_predict
+#     tree_preds = np.array([tree.predict(X_predict) for tree in model.estimators_])
+#     median_pred = np.median(tree_preds)
+#     mean_pred = np.mean(tree_preds)
+#     min_pred = np.min(tree_preds)
+#     max_pred = np.max(tree_preds)
+#     lower_ci = np.percentile(tree_preds, 2.5)
+#     upper_ci = np.percentile(tree_preds, 97.5)
+#
+#     predictions = {
+#         "mean": mean_pred,
+#         "median": median_pred,
+#         "min": min_pred,
+#         "max": max_pred,
+#         "lower_95ci": lower_ci,
+#         "upper_95ci": upper_ci
+#     }
+#     return predictions
 
 
 def evaluate_random_forest(model, X_test, y_test):
@@ -152,37 +122,37 @@ def get_feature_importance(rf_model, feature_names):
 # XGBoost
 # -----------------------------------
 
-def predict_xgboost(model, Z_scaled, model_lower, model_upper):
-
-    booster = model.get_booster()
-    num_rounds = booster.num_boosted_rounds()
-    tree_preds = np.array([
-        model.predict(Z_scaled, iteration_range=(i, i + 1))
-        for i in range(num_rounds)
-    ]).reshape(-1)
-
-    mean_pred = np.mean(tree_preds)
-    median_pred = np.median(tree_preds)
-
-    if model_lower is not None and model_upper is not None:
-        lower = model_lower.predict(Z_scaled)
-        upper = model_upper.predict(Z_scaled)
-
-        # Enforce order (in case quantiles flip)
-        lower, upper = np.minimum(lower, upper), np.maximum(lower, upper)
-
-        # Clip mean and median to stay within the bounds
-        mean_pred = np.clip(mean_pred, lower, upper)
-        median_pred = np.clip(median_pred, lower, upper)
-
-        predictions = {
-            "mean": mean_pred.item(),
-            "median": median_pred.item(),
-            "lower_95ci": lower.item(),
-            "upper_95ci": upper.item()
-        }
-
-    return predictions
+# def predict_xgboost(model, Z_scaled, model_lower, model_upper):
+#
+#     booster = model.get_booster()
+#     num_rounds = booster.num_boosted_rounds()
+#     tree_preds = np.array([
+#         model.predict(Z_scaled, iteration_range=(i, i + 1))
+#         for i in range(num_rounds)
+#     ]).reshape(-1)
+#
+#     mean_pred = np.mean(tree_preds)
+#     median_pred = np.median(tree_preds)
+#
+#     if model_lower is not None and model_upper is not None:
+#         lower = model_lower.predict(Z_scaled)
+#         upper = model_upper.predict(Z_scaled)
+#
+#         # Enforce order (in case quantiles flip)
+#         lower, upper = np.minimum(lower, upper), np.maximum(lower, upper)
+#
+#         # Clip mean and median to stay within the bounds
+#         mean_pred = np.clip(mean_pred, lower, upper)
+#         median_pred = np.clip(median_pred, lower, upper)
+#
+#         predictions = {
+#             "mean": mean_pred.item(),
+#             "median": median_pred.item(),
+#             "lower_95ci": lower.item(),
+#             "upper_95ci": upper.item()
+#         }
+#
+#     return predictions
 
 
 
@@ -274,12 +244,12 @@ def evaluate_cv(model, X, y, cv_folds=5):
 
 #---------------------------------------Predict & Evaluate -------------------------------------#
 
-def predict_and_evaluate_rf(model, X_train, y_train, X_test, y_test, Z_scaled):
+def predict_and_evaluate_rf(model, X_train, y_train, X_test, y_test, Z):
     # predictions = predict_random_forest(model, Z_scaled)
     metrics = evaluate_random_forest(model, X_test, y_test)
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
     boot_stats = bootstrap_uncertainty(
-        model, X_train, y_train, Z_scaled,
+        model, X_train, y_train, Z,
         n_bootstrap=500, model_name="RandomForest"
     )
     print_stats_inline("RF Prediction Stats", boot_stats)
@@ -287,12 +257,12 @@ def predict_and_evaluate_rf(model, X_train, y_train, X_test, y_test, Z_scaled):
     get_feature_importance(model, feature_names)
 
 
-def predict_and_evaluate_xgb(model, X_train, y_train, X_test, y_test, Z_scaled):
+def predict_and_evaluate_xgb(model, X_train, y_train, X_test, y_test, Z):
     # predictions = predict_xgboost(model, Z_scaled, model_lower, model_upper)
     metrics = evaluate_xgboost(model, X_test, y_test)
     print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
     boot_stats = bootstrap_uncertainty(
-        model, X_train, y_train, Z_scaled, n_bootstrap=500, model_name="XGBoost"
+        model, X_train, y_train, Z, n_bootstrap=500, model_name="XGBoost"
     )
     print_stats_inline("XGB Prediction Stats", boot_stats)
     get_feature_importance(model, feature_names)

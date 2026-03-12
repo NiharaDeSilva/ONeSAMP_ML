@@ -8,6 +8,7 @@ BASE_PATH = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML"
 
 OUTPUT_PATH = os.path.join(BASE_PATH, "output_tuning")
 TEMP_DIR = os.path.join(BASE_PATH, "temp")
+PLOT_DIR = os.path.join(BASE_PATH, "plots")
 
 # ===== Executables =====
 POPULATION_GENERATOR = os.path.join(BASE_PATH, "build", "OneSamp")
@@ -23,6 +24,7 @@ class configClass:
     numLoci: int = None
     BASE_PATH: str = BASE_PATH
     OUTPUT_PATH: str = OUTPUT_PATH
-    scalar_path: str = SCALAR_PATH
+    PLOT_DIR: str = PLOT_DIR
+    SCALAR_PATH: str = SCALAR_PATH
 
 config = configClass()
