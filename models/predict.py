@@ -15,7 +15,25 @@ sampleSize = cfg.config.sampleSize
 output_path = cfg.config.OUTPUT_PATH
 
 
+def get_output_path():
+    path = os.path.join(cfg.config.BASE_PATH, "output_100_4400/")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def get_loci():
+    if cfg.config.numLoci is None:
+        raise ValueError("config.numLoci not set yet")
+    return cfg.config.numLoci
+
+def get_sample_size():
+    if cfg.config.sampleSize is None:
+        raise ValueError("config.sampleSize not set yet")
+    return cfg.config.sampleSize
+
 def get_plot_dir():
+    if cfg.config.PLOT_DIR is None:
+        raise ValueError("cfg.config.PLOT_DIR not set yet")
     plot_dir = os.path.join(cfg.config.PLOT_DIR, f"{sampleSize}x{loci}")
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir

@@ -29,7 +29,6 @@ def get_sample_size():
 def get_plot_dir():
     loci = get_loci()
     sampleSize = get_sample_size()
-
     if cfg.config.PLOT_DIR is None:
         raise ValueError("cfg.config.PLOT_DIR not set yet")
 
@@ -48,6 +47,20 @@ def load_training_data(train_path):
     y_train = df.iloc[:, 0].astype(float).values
     X_train = df.iloc[:, 1:6].astype(float).values
     return X_train, y_train
+
+
+
+# Predict again using new Z
+#Z_scaled = scaler.transform(Z)
+#xgb_prediction = xgb_model.predict(Z_scaled)
+
+#train_path = os.path.join(output_path,f'allPopStats_genePop{sampleSize}x{loci}')
+#scaler_path = os.path.join(output_path, f'scaler_{sampleSize}x{loci}.joblib')
+#rf_path = os.path.join(output_path, f"rf_model_{sampleSize}x{loci}.joblib")
+#xgb_path = os.path.join(output_path, f"xgb_model_{sampleSize}x{loci}.joblib")
+#lasso_path = os.path.join(output_path, f"lasso_model_{sampleSize}x{loci}.joblib")
+#ridge_path = os.path.join(output_path, f"ridge_model_{sampleSize}x{loci}.joblib")
+
 
 
 def load_scaler(scaler_path):

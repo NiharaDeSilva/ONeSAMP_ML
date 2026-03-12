@@ -13,8 +13,7 @@ from statistics import statisticsClass
 from sklearn.utils import resample
 from models.train import run_model_training
 from models.model_utils import run_all_models
-#sys.path.append("/blue/boucher/suhashidesilva/2025/WFsim")
-#from wfsim import run_simulation
+
 import config as cfg
 from models.tuning import train_and_tune_models
 
@@ -25,6 +24,9 @@ DEBUG = 0  ## BOUCHER: Change this to 1 for debuggin mode
 
 
 directory = "temp"
+
+path = os.path.join("./", directory)
+
 BASE_PATH = cfg.BASE_PATH
 path = cfg.TEMP_DIR
 output_path = cfg.OUTPUT_PATH
@@ -300,18 +302,8 @@ if __name__ == '__main__':
     except RuntimeError:
         pass
     main()
-'''
-'''
-    multiprocessing.set_start_method('fork')
-    # Parallel process the random populations and add to a list
-    with concurrent.futures.ProcessPoolExecutor(max_workers=64) as executor:
-        for result in executor.map(processRandomPopulation, range(numOneSampTrials)):
-            try:
-                results_list.append(result)
-            except Exception as e:
-                print(f"Generated an exception: {e}")
-'''
-'''
+
+
 try:
     shutil.rmtree(directory)
 except FileNotFoundError:
@@ -334,8 +326,9 @@ print("-----Population simulation time %s seconds -----" % (time.time() - start_
 
 # Assign input and all population stats to dataframes with column names
 allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
-'''
+inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 
+'''
 
 
 # =========================================================
@@ -354,7 +347,6 @@ if __name__ == "__main__":
         random_state=42)
 
     print(results["results_df"])
-
 
 # =========================================================
 # TRAIN MODEL

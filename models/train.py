@@ -21,9 +21,8 @@ loci = cfg.config.numLoci
 sampleSize = cfg.config.sampleSize
 output_path = cfg.config.OUTPUT_PATH
 
-
 def get_output_path():
-    path = os.path.join(cfg.config.BASE_PATH, "output_test_100/")
+    path = os.path.join(cfg.config.BASE_PATH, "output_100_4400/")
     os.makedirs(path, exist_ok=True)
     return path
 
