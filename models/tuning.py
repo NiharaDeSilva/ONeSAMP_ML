@@ -108,7 +108,7 @@ def train_and_tune_models(
         param_grid=ridge_param_grid,
         cv=cv,
         scoring='neg_root_mean_squared_error',
-        n_jobs=-1
+        n_jobs=5
     )
     ridge_search.fit(X, y)
     best_ridge = ridge_search.best_estimator_
@@ -131,7 +131,7 @@ def train_and_tune_models(
         param_grid=lasso_param_grid,
         cv=cv,
         scoring='neg_root_mean_squared_error',
-        n_jobs=-1
+        n_jobs=5
     )
     lasso_search.fit(X, y)
     best_lasso = lasso_search.best_estimator_
@@ -139,11 +139,11 @@ def train_and_tune_models(
     # =========================================================
     # 6. RANDOM FOREST
     # =========================================================
-    rf_model = RandomForestRegressor(random_state=random_state)
+    rf_model = RandomForestRegressor(random_state=random_state, n_jobs=1)
 
     rf_param_dist = {
-        'n_estimators': [100, 500, 1000, 2000, 5000],
-        'max_depth': [None, 5, 10, 20, 40],
+        'n_estimators': [100, 500, 1000, 2000, 5000, 6000, 8000],
+        'max_depth': [None, 5, 10, 20, 40, 60],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4],
         'max_features': [2, 4, 6, 'log2', 'sqrt']
@@ -153,11 +153,11 @@ def train_and_tune_models(
     rf_search = RandomizedSearchCV(
         estimator=rf_model,
         param_distributions=rf_param_dist,
-        n_iter=40,
+        n_iter=100,
         cv=cv,
         scoring='neg_root_mean_squared_error',
         random_state=random_state,
-        n_jobs=-1
+        n_jobs=5
     )
     rf_search.fit(X, y)
     best_rf = rf_search.best_estimator_
@@ -167,20 +167,22 @@ def train_and_tune_models(
     # =========================================================
     def xgb_objective(trial):
         params = {
-            'n_estimators': trial.suggest_int('n_estimators', 100, 5000),
-            'max_depth': trial.suggest_int('max_depth', 2, 6, 8, 10),
+            'n_estimators': trial.suggest_int('n_estimators', 100, 8000),
+            'max_depth': trial.suggest_int('max_depth', 2, 16),
             'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.2, log=True),
             'subsample': trial.suggest_float('subsample', 0.6, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.8, 1.0),
-            'min_child_weight': trial.suggest_int('min_child_weight', 1, 3, 5, 10),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
             'reg_alpha': trial.suggest_float('reg_alpha', 1e-4, 10.0, log=True),
             'reg_lambda': trial.suggest_float('reg_lambda', 1e-4, 10.0, log=True),
+            'gamma': trial.suggest_float('gamma', 0, 5),
+            'max_delta_step': trial.suggest_int('max_delta_step', 0, 10),
             'objective': 'reg:squarederror',
             'random_state': random_state,
-            'n_jobs': -1
+            'n_jobs':-1
         }
 
-        model = XGBRegressor(**params)
+        model = XGBRegressor(**params, )
 
         scores = cross_val_score(
             model,
@@ -188,7 +190,7 @@ def train_and_tune_models(
             y,
             cv=cv,
             scoring='neg_root_mean_squared_error',
-            n_jobs=-1
+            n_jobs=5
         )
 
         return -scores.mean()
@@ -201,7 +203,7 @@ def train_and_tune_models(
         **study.best_params,
         objective='reg:squarederror',
         random_state=random_state,
-        n_jobs=-1
+        n_jobs=1
     )
     best_xgb.fit(X, y)
 
@@ -225,8 +227,8 @@ def train_and_tune_models(
     # 10. COLLECT RESULTS
     # =========================================================
     results_df = pd.DataFrame({
-        # 'Model': ['Ridge', 'Lasso', 'RandomForest', 'XGBoost'],
-        'Model': ['XGBoost'],
+        'Model': ['Ridge', 'Lasso', 'RandomForest', 'XGBoost'],
+        #'Model': ['XGBoost'],
 
         'Best_CV_RMSE': [
             -ridge_search.best_score_,

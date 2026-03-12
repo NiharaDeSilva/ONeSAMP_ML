@@ -13,8 +13,7 @@ from statistics import statisticsClass
 from sklearn.utils import resample
 from models.train import run_model_training
 from models.model_utils import run_all_models
-#sys.path.append("/blue/boucher/suhashidesilva/2025/WFsim")
-#from wfsim import run_simulation
+
 import config as cfg
 from models.tuning import train_and_tune_models
 
@@ -27,7 +26,7 @@ DEBUG = 0  ## BOUCHER: Change this to 1 for debuggin mode
 directory = "temp"
 
 path = os.path.join("./", directory)
-results_path = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning/"
+
 BASE_PATH = cfg.BASE_PATH
 path = cfg.TEMP_DIR
 results_path = cfg.OUTPUT_PATH
