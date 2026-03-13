@@ -56,8 +56,6 @@ parser.add_argument("--l", type=float, help="Missing data for loci")
 parser.add_argument("--o", type=str, help="The File Name")
 parser.add_argument("--t", type=int, help="Repeat times")
 parser.add_argument("--n", type=bool, help="whether to filter the monomorphic loci", default=False)
-parser.add_argument("--al", type=str, help="allpop stats file")
-# parser.add_argument("--ip", type=str, help="inputpop stats file")
 
 # parser.add_argument("--md", type=str, help="Model Name")
 
@@ -82,7 +80,7 @@ lowerNe = 4
 if (args.lNe):
     lowerNe = int(args.lNe)
 
-upperNe = 400
+upperNe = 200
 if (args.uNe):
     upperNe = int(args.uNe)
 
@@ -144,12 +142,7 @@ if (DEBUG):
 
 rangeTheta = "%f,%f" % (lowerTheta, upperTheta)
 
-allPopStats_path = "data_100/allPopStats_genePop100x1000"
-if (args.al):
-    allPopStats_path = str(args.al)
 
-# if (args.ip):
-#     inputStats_path = str(args.ip)
 
 #########################################
 # STARTING INITIAL POPULATION
@@ -181,7 +174,7 @@ textList = [str(inputFileStatistics.stat1_new), str(inputFileStatistics.stat2), 
              str(inputFileStatistics.stat4), str(inputFileStatistics.stat5)]
 inputStatsList = textList
 
-'''
+
 inputPopStats = output_path + "inputPopStats_" + getName(fileName)
 with open(inputPopStats, 'w') as fileINPUT:
     fileINPUT.write('\t'.join(textList[0:]) + '\t')
@@ -328,8 +321,8 @@ print("-----Population simulation time %s seconds -----" % (time.time() - start_
 allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 
-'''
 
+'''
 
 # =========================================================
 # TUNE MODELS
@@ -347,18 +340,15 @@ if __name__ == "__main__":
         random_state=42)
 
     print(results["results_df"])
-
+'''
 # =========================================================
 # TRAIN MODEL
 # =========================================================
-
-# inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium','Mlocus_homozegosity_mean','Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
-# allPopStatistics = pd.read_csv(allPopStats_path, sep='\t', header=None, names=[ 'Ne', 'Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
-# run_model_training('all', allPopStatistics, inputStatsList, numLoci, sampleSize)
+run_model_training('all', allPopStatistics, inputStatsList)
 
 # =========================================================
 # INFERENCE
 # =========================================================
 
 # train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
-# run_all_models(sampleSize, numLoci, inputStatsList, train_path)
+# run_all_models(inputStatsList, train_path)

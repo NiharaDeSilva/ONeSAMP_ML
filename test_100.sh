@@ -5,7 +5,7 @@
 #SBATCH --mail-user=suhashidesilva@ufl.edu     # Where to send mail
 #SBATCH --ntasks=1		      # Number of tasks
 #SBATCH --cpus-per-task=20	      # Number of cores per task
-#SBATCH --mem=160gb                     # Job memory request
+#SBATCH --mem=100gb                     # Job memory request
 #SBATCH --time=240:00:00               # Time limit hrs:min:sec
 #SBATCH --output=log_files/serial_test_%j.log   # Standard output and error log
 
@@ -26,24 +26,24 @@ chmod +rwx /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/build/OneSamp
 #export PYTHONPATH=$PYTHONPATH:/blue/boucher/suhashidesilva/2025/WFsim/
 
 echo "Running plot script on multiple CPU cores"
-output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning2"
+#output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning2"
 
-python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_100/genePop100x1000_1 > /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning2/genePop100x1000.out
+#python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_100/genePop100x1000_1 > /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning2/genePop100x1000.out
 
 
-#folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_100"
-#output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_100_4400"
+folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70"
+output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/tuned/output_70"
 
 
 #Iterate through the files in the folder
-#for file in "$folder"/*; do
-#    if [ -f "$file" ]; then
-#        filename=$(basename -- "$file")
-#        filename_no_extension="${filename%.*}"
-#        output_file="$output/${filename_no_extension}"
-#        python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o "$file" > "$output_file"
-#        echo "Processed $file and saved output to $output_file"
-#    fi
-#done
+for file in "$folder"/*; do
+    if [ -f "$file" ]; then
+        filename=$(basename -- "$file")
+        filename_no_extension="${filename%.*}"
+        output_file="$output/${filename_no_extension}"
+        python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o "$file" > "$output_file"
+        echo "Processed $file and saved output to $output_file"
+    fi
+done
 
 date

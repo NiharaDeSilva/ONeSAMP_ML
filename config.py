@@ -6,7 +6,7 @@ from dataclasses import dataclass
 BASE_PATH = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML"
 # BASE_PATH = "/Users/suhashidesilva/Documents/Projects/ONeSAMP_ML"
 
-OUTPUT_PATH = os.path.join(BASE_PATH, "output_tuning2")
+OUTPUT_PATH = os.path.join(BASE_PATH, "tuned/output_70")
 TEMP_DIR = os.path.join(BASE_PATH, "temp")
 PLOT_DIR = os.path.join(BASE_PATH, "plots")
 

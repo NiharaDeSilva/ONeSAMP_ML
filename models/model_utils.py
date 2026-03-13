@@ -10,25 +10,12 @@ import config as cfg
 from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
-def get_output_path():
-    if cfg.config.OUTPUT_PATH is None:
-        raise ValueError("cfg.config.OUTPUT_PATH not set yet")
-    return cfg.config.OUTPUT_PATH
+loci = cfg.config.numLoci
+sampleSize = cfg.config.sampleSize
+output_path = cfg.config.OUTPUT_PATH
 
-
-def get_loci():
-    if cfg.config.numLoci is None:
-        raise ValueError("cfg.config.numLoci not set yet")
-    return cfg.config.numLoci
-
-def get_sample_size():
-    if cfg.config.sampleSize is None:
-        raise ValueError("cfg.config.sampleSize not set yet")
-    return cfg.config.sampleSize
 
 def get_plot_dir():
-    loci = get_loci()
-    sampleSize = get_sample_size()
     if cfg.config.PLOT_DIR is None:
         raise ValueError("cfg.config.PLOT_DIR not set yet")
 
