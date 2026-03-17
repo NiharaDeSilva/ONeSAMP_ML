@@ -276,76 +276,72 @@ except FileExistsError:
 
 
 def main():
-    # Parallel process the random populations and add to a list
-    with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
+    results_list = []
+    ctx = multiprocessing.get_context("spawn")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=20, mp_context=ctx) as executor:
         for result in executor.map(processRandomPopulation, range(numOneSampTrials)):
-            try:
-                results_list.append(result)
-            except Exception as e:
-                print(f"Generated an exception: {e}")
+            results_list.append(result)
 
+    return results_list
 
-if __name__ == '__main__':
-    try:
-        multiprocessing.set_start_method('fork')
-    except RuntimeError:
-        pass
-    main()
-
-
-try:
-    shutil.rmtree(directory)
-except FileNotFoundError:
-    print(f"Directory '{directory}' not found.")
-
-allPopStats = os.path.join(BASE_PATH, f"allPopStats_{getName(fileName)}")
-with open(allPopStats, 'w') as file:
-    for result in results_list:
-        file.write('\t'.join(map(str, result)) + '\n')
-
-simulation_time = time.time()
-
-print("-----Population simulation time %s seconds -----" % (time.time() - start_time))
-
-
-
-########################################
-# FINISHING ALL POPULATIONS
-########################################
-
-# Assign input and all population stats to dataframes with column names
-allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
-inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
-
-
-'''
-
-# =========================================================
-# TUNE MODELS
-# =========================================================
 
 if __name__ == "__main__":
-    input_sample_size ="f{sampleSize}x{numLoci}"
-    allPopStatistics = pd.read_csv(allPopStats_path, sep='\t', header=None, names=[ 'Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
-    results = train_and_tune_models(
-        allPopStatistics=allPopStatistics,
-        input_text_list=textList,
-        input_sample_size=input_sample_size,
-        output_dir=output_path,
-        n_splits=5,
-        random_state=42)
+    start_time = time.time()
 
-    print(results["results_df"])
-'''
-# =========================================================
-# TRAIN MODEL
-# =========================================================
-# train.run_model_training('all', allPopStatistics, inputStatsList)
-train.run_model_training(cfg, 6, allPopStatistics, inputStatsList)
+    results_list = main()
 
-# =========================================================
-# INFERENCE
-# =========================================================
+    try:
+        shutil.rmtree(directory)
+    except FileNotFoundError:
+        print(f"Directory '{directory}' not found.")
 
-# train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
-# model_utils.run_all_models(inputStatsList, train_path)
+    allPopStats = os.path.join(BASE_PATH, f"allPopStats_{getName(fileName)}")
+    with open(allPopStats, "w") as file:
+        for result in results_list:
+            file.write("\t".join(map(str, result)) + "\n")
+
+    print("-----Population simulation time %s seconds -----" % (time.time() - start_time))
+
+    ########################################
+    # FINISHING ALL POPULATIONS
+    ########################################
+
+    # Assign input and all population stats to dataframes with column names
+    allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
+    inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
+
+    print(f"[DEBUG] number of generated populations: {len(results_list)}")
+    print(f"[DEBUG] allPopStatistics shape before training: {allPopStatistics.shape}")
+    print(f"[DEBUG] inputStatsList shape before training: {inputStatsList.shape}")
+
+    '''
+    
+    # =========================================================
+    # TUNE MODELS
+    # =========================================================
+    
+    if __name__ == "__main__":
+        input_sample_size ="f{sampleSize}x{numLoci}"
+        allPopStatistics = pd.read_csv(allPopStats_path, sep='\t', header=None, names=[ 'Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
+        results = train_and_tune_models(
+            allPopStatistics=allPopStatistics,
+            input_text_list=textList,
+            input_sample_size=input_sample_size,
+            output_dir=output_path,
+            n_splits=5,
+            random_state=42)
+    
+        print(results["results_df"])
+    '''
+    # =========================================================
+    # TRAIN MODEL
+    # =========================================================
+    # train.run_model_training('all', allPopStatistics, inputStatsList)
+    train.run_model_training(cfg, 6, allPopStatistics, inputStatsList)
+
+    # =========================================================
+    # INFERENCE
+    # =========================================================
+
+    # train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
+    # model_utils.run_all_models(inputStatsList, train_path)

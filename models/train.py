@@ -44,8 +44,7 @@ def set_size(cfg):
 
 def make_run_dir(cfg):
     loci, sampleSize = set_size(cfg)
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]
-    return ensure_dir(os.path.join(output_path, f"{sampleSize}x{loci}", run_id))
+    return ensure_dir(os.path.join(output_path, f"{sampleSize}x{loci}"))
 
 
 def get_model_dir(run_dir, model_name):
