@@ -32,7 +32,7 @@ echo "Running plot script on multiple CPU cores"
 
 
 folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70"
-output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/tuned/output_70"
+output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/OUTPUT_70"
 
 
 #Iterate through the files in the folder

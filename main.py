@@ -174,8 +174,7 @@ textList = [str(inputFileStatistics.stat1_new), str(inputFileStatistics.stat2), 
              str(inputFileStatistics.stat4), str(inputFileStatistics.stat5)]
 inputStatsList = textList
 
-
-inputPopStats = output_path + "inputPopStats_" + getName(fileName)
+inputPopStats = os.path.join(BASE_PATH, f"inputPopStats_{getName(fileName)}")
 with open(inputPopStats, 'w') as fileINPUT:
     fileINPUT.write('\t'.join(textList[0:]) + '\t')
 fileINPUT.close()
@@ -281,7 +280,7 @@ except FileExistsError:
 
 def main():
     # Parallel process the random populations and add to a list
-    with concurrent.futures.ProcessPoolExecutor(max_workers=16) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
         for result in executor.map(processRandomPopulation, range(numOneSampTrials)):
             try:
                 results_list.append(result)
@@ -302,7 +301,7 @@ try:
 except FileNotFoundError:
     print(f"Directory '{directory}' not found.")
 
-allPopStats = output_path + "allPopStats_" + getName(fileName)
+allPopStats = os.path.join(BASE_PATH, f"allPopStats_{getName(fileName)}")
 with open(allPopStats, 'w') as file:
     for result in results_list:
         file.write('\t'.join(map(str, result)) + '\n')
