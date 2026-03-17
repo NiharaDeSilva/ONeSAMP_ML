@@ -277,7 +277,7 @@ except FileExistsError:
 
 def main():
     # Parallel process the random populations and add to a list
-    with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=16) as executor:
         for result in executor.map(processRandomPopulation, range(numOneSampTrials)):
             try:
                 results_list.append(result)

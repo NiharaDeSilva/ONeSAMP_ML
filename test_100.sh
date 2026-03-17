@@ -4,7 +4,7 @@
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=suhashidesilva@ufl.edu     # Where to send mail
 #SBATCH --ntasks=1		      # Number of tasks
-#SBATCH --cpus-per-task=20	      # Number of cores per task
+#SBATCH --cpus-per-task=16	      # Number of cores per task
 #SBATCH --mem=100gb                     # Job memory request
 #SBATCH --time=240:00:00               # Time limit hrs:min:sec
 #SBATCH --output=log_files/serial_test_%j.log   # Standard output and error log
@@ -31,8 +31,8 @@ echo "Running plot script on multiple CPU cores"
 #python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_100/genePop100x1000_1 > /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning2/genePop100x1000.out
 
 
-folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70"
-output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/OUTPUT_70"
+folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70/samples"
+output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/OUTPUT_TEST"
 
 
 #Iterate through the files in the folder
