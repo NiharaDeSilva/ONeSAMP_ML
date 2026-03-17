@@ -1,29 +1,16 @@
 import os
-import time
-import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import cross_val_score, train_test_split
 import joblib
-import config as cfg
+from config import OUTPUT_PATH
 from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
-loci = cfg.config.numLoci
-sampleSize = cfg.config.sampleSize
-output_path = cfg.config.OUTPUT_PATH
+output_path = OUTPUT_PATH
 
-
-def get_plot_dir():
-    if cfg.config.PLOT_DIR is None:
-        raise ValueError("cfg.config.PLOT_DIR not set yet")
-
-    plot_dir = os.path.join(cfg.config.PLOT_DIR, f"{sampleSize}x{loci}")
-    os.makedirs(plot_dir, exist_ok=True)
-    return plot_dir
-
-
+def set_size(cfg):
+    loci = cfg.numLoci
+    sampleSize = cfg.sampleSize
+    return loci, sampleSize
 
 def load_training_data(train_path):
     with open(train_path, "r") as f:
@@ -144,12 +131,13 @@ def load_ridge_model(ridge_path, Z, scaler_path, train_path):
     return ridge_prediction
 
 
-def run_all_models(sampleSize, loci, Z, train_path):
-    scaler_path = os.path.join(cfg.config.OUTPUT_PATH, f"scaler_{sampleSize}x{loci}.joblib")
-    rf_path     = os.path.join(cfg.config.OUTPUT_PATH, f"rf_model_{sampleSize}x{loci}.joblib")
-    xgb_path    = os.path.join(cfg.config.OUTPUT_PATH, f"xgb_model_{sampleSize}x{loci}.joblib")
-    lasso_path  = os.path.join(cfg.config.OUTPUT_PATH, f"lasso_model_{sampleSize}x{loci}.joblib")
-    ridge_path  = os.path.join(cfg.config.OUTPUT_PATH, f"ridge_model_{sampleSize}x{loci}.joblib")
+def run_all_models(cfg, Z, train_path):
+    loci, sampleSize = set_size(cfg)
+    scaler_path = os.path.join(OUTPUT_PATH, f"scaler_{sampleSize}x{loci}.joblib")
+    rf_path     = os.path.join(OUTPUT_PATH, f"rf_model_{sampleSize}x{loci}.joblib")
+    xgb_path    = os.path.join(OUTPUT_PATH, f"xgb_model_{sampleSize}x{loci}.joblib")
+    lasso_path  = os.path.join(OUTPUT_PATH, f"lasso_model_{sampleSize}x{loci}.joblib")
+    ridge_path  = os.path.join(OUTPUT_PATH, f"ridge_model_{sampleSize}x{loci}.joblib")
     results = []
 
     # Random Forest (raw input, no scaler)

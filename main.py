@@ -1,20 +1,17 @@
 #!/usr/bin/python
 import argparse
 import os
-import numpy as np
 import pandas as pd
 import time
 import random
 import multiprocessing
 import concurrent.futures
-import sys
 import shutil
 from statistics import statisticsClass
-from sklearn.utils import resample
-from models.train import run_model_training
-from models.model_utils import run_all_models
+import models.train as train
+import models.model_utils as model_utils
 
-import config as cfg
+from config import configClass, OUTPUT_PATH, BASE_PATH, POPULATION_GENERATOR, TEMP_DIR
 from models.tuning import train_and_tune_models
 
 NUMBER_OF_STATISTICS = 5
@@ -27,10 +24,8 @@ directory = "temp"
 
 path = os.path.join("./", directory)
 
-BASE_PATH = cfg.BASE_PATH
-path = cfg.TEMP_DIR
-output_path = cfg.OUTPUT_PATH
-POPULATION_GENERATOR = cfg.POPULATION_GENERATOR
+path = TEMP_DIR
+output_path = OUTPUT_PATH
 
 
 def getName(filename):
@@ -166,8 +161,10 @@ inputFileStatistics.test_stat4()
 numLoci = inputFileStatistics.numLoci
 sampleSize = inputFileStatistics.sampleSize
 
-cfg.config.numLoci = numLoci
-cfg.config.sampleSize = sampleSize
+cfg = configClass()
+cfg.numLoci = numLoci
+cfg.sampleSize = sampleSize
+train.set_size(cfg)
 
 ##Creating input file & List with intial statistics
 textList = [str(inputFileStatistics.stat1_new), str(inputFileStatistics.stat2), str(inputFileStatistics.stat3),
@@ -343,11 +340,12 @@ if __name__ == "__main__":
 # =========================================================
 # TRAIN MODEL
 # =========================================================
-run_model_training('all', allPopStatistics, inputStatsList)
+# train.run_model_training('all', allPopStatistics, inputStatsList)
+train.run_model_training(cfg, 6, allPopStatistics, inputStatsList)
 
 # =========================================================
 # INFERENCE
 # =========================================================
 
 # train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
-# run_all_models(inputStatsList, train_path)
+# model_utils.run_all_models(inputStatsList, train_path)

@@ -6,18 +6,21 @@ from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
 from models.calibration import calibration_curves
 import copy
-import config as cfg
+from config import OUTPUT_PATH, PLOT_DIR
 
-loci = cfg.config.numLoci
-sampleSize = cfg.config.sampleSize
-output_path = cfg.config.OUTPUT_PATH
+output_path = OUTPUT_PATH
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
 
+def set_size(cfg):
+    loci = cfg.numLoci
+    sampleSize = cfg.sampleSize
+    return loci, sampleSize
 
-def get_plot_dir():
-    if cfg.config.PLOT_DIR is None:
+def get_plot_dir(cfg):
+    loci,sampleSize = set_size(cfg)
+    if PLOT_DIR is None:
         raise ValueError("cfg.config.PLOT_DIR not set yet")
-    plot_dir = os.path.join(cfg.config.PLOT_DIR, f"{sampleSize}x{loci}")
+    plot_dir = os.path.join(PLOT_DIR, f"{sampleSize}x{loci}")
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir
 
@@ -93,9 +96,9 @@ def evaluate_cv(model, X, y, cv_folds=5):
 
 
 #---------------------------------------Predict & Evaluate -------------------------------------#
-def evaluate_regression_model(model, X_test, y_test):
+def evaluate_regression_model(cfg, model, X_test, y_test, model_dir):
     y_pred_test = model.predict(X_test)
-    plot_dir = get_plot_dir()
+    plot_dir = get_plot_dir(cfg)
     calibration_curves(y_test, y_pred_test, "XGBoost", save_dir=plot_dir)
 
     mse = mean_squared_error(y_test, y_pred_test)
@@ -109,6 +112,13 @@ def evaluate_regression_model(model, X_test, y_test):
         "mae": mae,
         "r2": r2
     }
+    os.makedirs(model_dir, exist_ok=True)
+    with open(os.path.join(model_dir, "metrics.txt"), "w") as f:
+        f.write(
+            f"RMSE: {metrics['rmse']:.4f}\n"
+            f"MAE: {metrics['mae']:.4f}\n"
+            f"R2: {metrics['r2']:.4f}\n"
+        )
     return metrics
 
 
@@ -117,7 +127,7 @@ def print_stats_inline(name, stats):
           f"95% CI: ({stats['lower_95ci']:.4f}, {stats['upper_95ci']:.4f})")
 
 
-def predict_and_evaluate_model(model, X_train, y_train, X_test, y_test, Z, model_name, feature_names):
+def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, model_name, feature_names, model_dir):
     """
     Common evaluation + bootstrap CI + interpretation for all regression models.
 
@@ -133,8 +143,7 @@ def predict_and_evaluate_model(model, X_train, y_train, X_test, y_test, Z, model
     """
 
     # Metrics on held-out test set
-    metrics = evaluate_regression_model(model, X_test, y_test)
-    print(f"RMSE: {metrics['rmse']:.4f}, MAE: {metrics['mae']:.4f}, R2: {metrics['r2']:.4f}")
+    metrics = evaluate_regression_model(cfg, model, X_test, y_test, model_dir)
 
     # Nonparametric bootstrap prediction statistics
     boot_stats = bootstrap_uncertainty(

@@ -16,15 +16,10 @@ POPULATION_GENERATOR = os.path.join(BASE_PATH, "build", "OneSamp")
 # Optional future paths
 SCALAR_PATH = os.path.join(BASE_PATH, "scalars")
 
-
 @dataclass
 class configClass:
     fileName: str = None
     sampleSize: int = None
     numLoci: int = None
-    BASE_PATH: str = BASE_PATH
-    OUTPUT_PATH: str = OUTPUT_PATH
-    PLOT_DIR: str = PLOT_DIR
-    SCALAR_PATH: str = SCALAR_PATH
 
-config = configClass()
+
