@@ -6,9 +6,9 @@ from dataclasses import dataclass
 BASE_PATH = "/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML"
 # BASE_PATH = "/Users/suhashidesilva/Documents/Projects/ONeSAMP_ML"
 
-OUTPUT_PATH = os.path.join(BASE_PATH, "OUTPUT_70")
+OUTPUT_PATH = os.path.join(BASE_PATH, "OUTPUT_TEST")
 TEMP_DIR = os.path.join(BASE_PATH, "temp")
-PLOT_DIR = os.path.join(BASE_PATH, "plots")
+PLOT_DIR = os.path.join(BASE_PATH, "PLOTS_70")
 
 # ===== Executables =====
 POPULATION_GENERATOR = os.path.join(BASE_PATH, "build", "OneSamp")

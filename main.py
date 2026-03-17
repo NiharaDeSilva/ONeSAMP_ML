@@ -278,7 +278,7 @@ except FileExistsError:
 def main():
     results_list = []
     ctx = multiprocessing.get_context("spawn")
-    with concurrent.futures.ProcessPoolExecutor(max_workers=20, mp_context=ctx) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=16, mp_context=ctx) as executor:
         for result in executor.map(processRandomPopulation, range(numOneSampTrials)):
             results_list.append(result)
 
