@@ -84,7 +84,7 @@ def get_plot_dir(cfg, run_dir=None, model_name=None):
 # OOF calibration data
 # -----------------------------------
 
-def get_oof_predictions(model_constructor, X_train, y_train, model_name, save_dir):
+def get_oof_predictions(cfg, model_constructor, X_train, y_train, model_name, save_dir):
     """
     Performs 5-fold CV on the training set and saves calibration outputs
     into a model-specific directory.
