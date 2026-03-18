@@ -85,6 +85,26 @@ def load_xgb_model(xgb_path, Z, train_path):
     return xgb_prediction
 
 
+def load_catboost_model(catboost_path, Z, train_path):
+    if not os.path.exists(catboost_path):
+        raise FileNotFoundError(f"Model file {catboost_path} does not exist.")
+
+    X_train, y_train = load_training_data(train_path)
+    # X_train_s = scaler.transform(X_train)
+    # Z_scaled = scaler.transform(Z.values)
+
+    catboost_model = joblib.load(catboost_path)
+    xgb_prediction = bootstrap_uncertainty(
+        model=catboost_model,
+        X_train=X_train,
+        y_train=y_train,
+        X_point=Z,
+        n_bootstrap=500,
+        model_name="CatBoost"
+    )
+    return xgb_prediction
+
+
 def load_lasso_model(lasso_path, Z, scaler_path, train_path):
     if not os.path.exists(lasso_path):
         raise FileNotFoundError(f"Model file {lasso_path} does not exist.")
@@ -133,11 +153,13 @@ def load_ridge_model(ridge_path, Z, scaler_path, train_path):
 
 def run_all_models(cfg, Z, train_path):
     loci, sampleSize = set_size(cfg)
-    scaler_path = os.path.join(OUTPUT_PATH, f"scaler_{sampleSize}x{loci}.joblib")
-    rf_path     = os.path.join(OUTPUT_PATH, f"rf_model_{sampleSize}x{loci}.joblib")
-    xgb_path    = os.path.join(OUTPUT_PATH, f"xgb_model_{sampleSize}x{loci}.joblib")
-    lasso_path  = os.path.join(OUTPUT_PATH, f"lasso_model_{sampleSize}x{loci}.joblib")
-    ridge_path  = os.path.join(OUTPUT_PATH, f"ridge_model_{sampleSize}x{loci}.joblib")
+    folder_path = os.path.join(OUTPUT_PATH, f"{sampleSize}x{loci}")
+    scaler_path = os.path.join(folder_path, f"scaler.joblib")
+    rf_path     = os.path.join(folder_path, "RandomForest", f"rf_model.joblib")
+    xgb_path    = os.path.join(folder_path, "XGBoost", f"xgb_model.joblib")
+    catboost_path = os.path.join(folder_path, "CatBoost", f"catboost_model.joblib")
+    lasso_path  = os.path.join(folder_path, "Lassso", f"lasso_model.joblib")
+    ridge_path  = os.path.join(folder_path, "Ridge", f"ridge_model.joblib")
     results = []
 
     # Random Forest (raw input, no scaler)
@@ -151,6 +173,14 @@ def run_all_models(cfg, Z, train_path):
     # XGBoost (raw input, no scaler)
     try:
         pred = load_xgb_model(xgb_path, Z, train_path)
+        results.append(pred)
+        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+    except FileNotFoundError as e:
+        print(f"[Skip] {e}")
+
+    # CatBoost (raw input, no scaler)
+    try:
+        pred = load_catboost_model(catboost_path, Z, train_path)
         results.append(pred)
         print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
     except FileNotFoundError as e:

@@ -1,9 +1,12 @@
 import os
 import time
 import json
+import io
 import uuid
 import joblib
 import numpy as np
+import traceback
+from contextlib import redirect_stdout, redirect_stderr
 
 from datetime import datetime
 from contextlib import redirect_stdout, redirect_stderr
@@ -64,11 +67,9 @@ def get_model_filename(model_name):
         "XGBoost": "xgb_model.joblib",
         "Lasso": "lasso_model.joblib",
         "Ridge": "ridge_model.joblib",
-        "LightGBM": "lgbm_model.joblib",
         "CatBoost": "catboost_model.joblib",
     }
     return mapping[model_name]
-
 
 
 
@@ -155,20 +156,6 @@ def get_model_builders():
             random_state=42,
             n_jobs=1,   # keep inner parallelism off
         ),
-        "LightGBM": lambda: LGBMRegressor(
-            objective="regression",
-            n_estimators=1000,
-            learning_rate=0.04,
-            num_leaves=31,
-            max_depth=-1,
-            subsample=0.8,
-            colsample_bytree=0.9,
-            reg_alpha=0.0,
-            reg_lambda=0.0,
-            random_state=42,
-            n_jobs=1,
-            verbose=-1
-        ),
 
         "CatBoost": lambda: CatBoostRegressor(
             loss_function="RMSE",
@@ -247,9 +234,6 @@ def train_model(cfg, model_name, X_train, y_train, model_path, plot_dir):
 # -----------------------------------
 
 def _run_single_model_task(task):
-    """
-    Must stay at module scope for process-based parallelism.
-    """
     cfg = task["cfg"]
     model_name = task["model_name"]
     X_train = task["X_train"]
@@ -261,35 +245,111 @@ def _run_single_model_task(task):
     model_dir = task["model_dir"]
     model_path = task["model_path"]
 
-    log_path = os.path.join(model_dir, "train.log")
-
-    with open(log_path, "w") as log_fp, redirect_stdout(log_fp), redirect_stderr(log_fp):
-        print(f"\n------------- {model_name.upper()} -------------")
-        start = time.time()
-
-        model = train_model(
-            cfg=cfg,
-            model_name=model_name,
-            X_train=X_train,
-            y_train=y_train,
-            model_path=model_path,
-            plot_dir=model_dir,
-        )
-
-        # IMPORTANT:
-        # This is safe only if predict_and_evaluate_model writes model-specific filenames
-        # or accepts a save_dir internally.
-        predict_and_evaluate_model(
-            cfg, model, X_train, y_train, X_test, y_test, Z, model_name, feature_cols, model_dir)
-
-        print(f"Time taken: {time.time() - start:.2f} seconds")
-
-    return {
+    log_buffer = io.StringIO()
+    result = {
         "model_name": model_name,
         "model_path": model_path,
         "model_dir": model_dir,
-        "log_path": log_path,
+        "status": "success",
+        "metrics": None,
+        "feature_scores": None,
+        "log_text": "",
     }
+
+    try:
+        with redirect_stdout(log_buffer), redirect_stderr(log_buffer):
+            print(f"\n------------- {model_name.upper()} -------------")
+            start = time.time()
+
+            model = train_model(
+                cfg=cfg,
+                model_name=model_name,
+                X_train=X_train,
+                y_train=y_train,
+                model_path=model_path,
+                plot_dir=model_dir,
+            )
+
+            eval_out = predict_and_evaluate_model(
+                cfg,
+                model,
+                X_train,
+                y_train,
+                X_test,
+                y_test,
+                Z,
+                model_name,
+                feature_cols,
+                model_dir
+            )
+
+            elapsed = time.time() - start
+            print(f"Time taken: {elapsed:.2f} seconds")
+
+            if eval_out is not None:
+                result["metrics"] = eval_out.get("metrics")
+                result["feature_scores"] = eval_out.get("feature_scores")
+
+    except Exception:
+        result["status"] = "failed"
+        with redirect_stdout(log_buffer), redirect_stderr(log_buffer):
+            traceback.print_exc()
+
+    result["log_text"] = log_buffer.getvalue()
+
+    # optional: keep individual model log too
+    with open(os.path.join(model_dir, "train.log"), "w") as f:
+        f.write(result["log_text"])
+
+    return result
+
+
+def write_combined_training_report(run_dir, results, ordered_model_names):
+    summary_txt = os.path.join(run_dir, "training_summary.txt")
+    summary_json = os.path.join(run_dir, "training_metrics.json")
+
+    serializable = {}
+
+    with open(summary_txt, "w") as f:
+        f.write("COMBINED TRAINING REPORT\n")
+        f.write("=" * 80 + "\n\n")
+
+        for model_name in ordered_model_names:
+            if model_name not in results:
+                continue
+
+            r = results[model_name]
+            serializable[model_name] = {
+                "status": r["status"],
+                "metrics": r["metrics"],
+                "feature_scores": r["feature_scores"],
+                "model_path": r["model_path"],
+                "model_dir": r["model_dir"],
+            }
+
+            f.write(f"{model_name}\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Status: {r['status']}\n")
+
+            if r["metrics"] is not None:
+                m = r["metrics"]
+                f.write(
+                    f"RMSE: {m['rmse']:.4f}, "
+                    f"MAE: {m['mae']:.4f}, "
+                    f"R2: {m['r2']:.4f}\n"
+                )
+
+            if r["feature_scores"] is not None:
+                f.write("\nFeature scores:\n")
+                for feat, score in r["feature_scores"]:
+                    f.write(f"  {feat:30} : {score}\n")
+
+            f.write("\nLogs:\n")
+            f.write(r["log_text"])
+            f.write("\n" + "=" * 80 + "\n\n")
+
+    with open(summary_json, "w") as f:
+        json.dump(serializable, f, indent=2)
 
 
 # -----------------------------------
@@ -373,17 +433,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
             "Z": Z_scaled,
             "feature_cols": feature_cols,
         },
-         4: {
-            "cfg": cfg,
-            "model_name": "LightGBM",
-            "X_train": X_train,
-            "y_train": y_train,
-            "X_test": X_test,
-            "y_test": y_test,
-            "Z": Z,
-            "feature_cols": feature_cols,
-        },
-        5: {
+        4: {
             "cfg": cfg,
             "model_name": "CatBoost",
             "X_train": X_train,
@@ -401,18 +451,18 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
         task["model_path"] = os.path.join(model_dir, get_model_filename(task["model_name"]))
 
     # --- Single model path ---
-    if model_selection in [0, 1, 2, 3, 4, 5]:
+    if model_selection in [0, 1, 2, 3, 4]:
         result = _run_single_model_task(task_map[model_selection])
         model = joblib.load(result["model_path"])
         return model
 
-    # --- Parallel path: train all 4 in separate processes ---
-    max_workers = min(4, os.cpu_count() or 1)
-    results = {}
+    # --- Parallel path: train all 5 in separate processes ---
+    max_workers = min(5, os.cpu_count() or 1)
 
     # spawn is the safest cross-platform start method
     ctx = get_context("spawn")
 
+    results = {}
     with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
         futures = {
             executor.submit(_run_single_model_task, task): task["model_name"]
@@ -423,11 +473,12 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
             result = future.result()
             results[result["model_name"]] = result
 
-    rf_model = joblib.load(results["RandomForest"]["model_path"])
-    xgb_model = joblib.load(results["XGBoost"]["model_path"])
-    lasso_model = joblib.load(results["Lasso"]["model_path"])
-    ridge_model = joblib.load(results["Ridge"]["model_path"])
-    lgbm_model = joblib.load(results["LightGBM"]["model_path"])
-    catboost_model = joblib.load(results["CatBoost"]["model_path"])
+    ordered_model_names = [
+        "RandomForest",
+        "XGBoost",
+        "Lasso",
+        "Ridge",
+        "CatBoost",
+    ]
 
-    return rf_model, xgb_model, lasso_model, ridge_model, lgbm_model, catboost_model
+    write_combined_training_report(run_dir, results, ordered_model_names)

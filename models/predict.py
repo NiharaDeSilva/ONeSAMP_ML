@@ -67,8 +67,8 @@ def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=500, alp
 
 
 
-def get_feature_importance(rf_model, feature_names):
-    importances = rf_model.feature_importances_
+def get_feature_importance(model, feature_names):
+    importances = model.feature_importances_
     feature_importances = [(feature, round(score, 2)) for feature, score in zip(feature_names, importances)]
     feature_importances = sorted(feature_importances, key=lambda x: x[1], reverse=True)
     print("\nFeature importance")
@@ -158,7 +158,7 @@ def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, 
     print_stats_inline(f"{model_name} Prediction Stats", boot_stats)
 
     # Interpretation
-    if model_name in ["RandomForest", "XGBoost"]:
+    if model_name in ["RandomForest", "XGBoost", "CatBoost"]:
         get_feature_importance(model, feature_names)
 
     elif model_name in ["Lasso", "Ridge"]:

@@ -208,7 +208,6 @@ statistics3 = [0 for x in range(numOneSampTrials)]
 statistics5 = [0 for x in range(numOneSampTrials)]
 statistics4 = [0 for x in range(numOneSampTrials)]
 
-print("starting population simulations:")
 
 # Generate random populations and calculate summary statistics
 def processRandomPopulation(x):
@@ -310,10 +309,6 @@ if __name__ == "__main__":
     allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
     inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 
-    print(f"[DEBUG] number of generated populations: {len(results_list)}")
-    print(f"[DEBUG] allPopStatistics shape before training: {allPopStatistics.shape}")
-    print(f"[DEBUG] inputStatsList shape before training: {inputStatsList.shape}")
-
     '''
     
     # =========================================================
@@ -337,11 +332,11 @@ if __name__ == "__main__":
     # TRAIN MODEL
     # =========================================================
     # train.run_model_training('all', allPopStatistics, inputStatsList)
-    train.run_model_training(cfg, 6, allPopStatistics, inputStatsList)
+    # train.run_model_training(cfg, 5, allPopStatistics, inputStatsList)
 
     # =========================================================
     # INFERENCE
     # =========================================================
 
-    # train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
-    # model_utils.run_all_models(inputStatsList, train_path)
+    train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
+    model_utils.run_all_models(cfg, inputStatsList, train_path)
