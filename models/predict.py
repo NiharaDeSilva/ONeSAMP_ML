@@ -1,5 +1,6 @@
 # Prediction using trained models
 import numpy as np
+import pandas as pd
 import os
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
 from sklearn.model_selection import cross_val_score
@@ -24,47 +25,91 @@ def get_plot_dir(cfg):
     os.makedirs(plot_dir, exist_ok=True)
     return plot_dir
 
+"""
+    Convert X into a numeric 2D representation.Keeps DataFrame column order if feature_names is provided.
+"""
+def _ensure_numeric_2d(X, feature_names=None, dtype=np.float32):
+    if isinstance(X, pd.DataFrame):
+        if feature_names is not None:
+            missing = [c for c in feature_names if c not in X.columns]
+            if missing:
+                raise ValueError(f"Missing required feature columns: {missing}")
+            X = X.loc[:, feature_names]
 
-def bootstrap_uncertainty(model, X_train, y_train, X_point, n_bootstrap=500, alpha=0.05, model_name=""):
+        # Force numeric conversion
+        X = X.apply(pd.to_numeric, errors="raise")
+        return X.astype(dtype)
+
+    if isinstance(X, pd.Series):
+        X = pd.to_numeric(X, errors="raise").to_numpy(dtype=dtype)
+    else:
+        X = np.asarray(X, dtype=dtype)
+
+    if X.ndim == 1:
+        X = X.reshape(1, -1)
+
+    return X
+
+
+def _ensure_numeric_1d(y, dtype=np.float32):
+    if isinstance(y, (pd.Series, pd.DataFrame)):
+        y = np.asarray(pd.to_numeric(np.ravel(y), errors="raise"), dtype=dtype)
+    else:
+        y = np.asarray(y, dtype=dtype).ravel()
+    return y
+
+
+def bootstrap_uncertainty(
+    model,
+    X_train,
+    y_train,
+    X_point,
+    n_bootstrap=500,
+    alpha=0.05,
+    model_name=""
+):
     """
     General non-parametric bootstrap uncertainty estimator.
-    Returns CI, mean, median, min, max, std.
+    for RF, XGBoost, LightGBM, CatBoost, Lasso, Ridge,
     """
+
+    # Sanitize inputs once up front
+    X_train_clean = _ensure_numeric_2d(X_train, feature_names=feature_names)
+    y_train_clean = _ensure_numeric_1d(y_train)
+    X_point_clean = _ensure_numeric_2d(X_point, feature_names=feature_names)
+
+    if X_train_clean.shape[1] != X_point_clean.shape[1]:
+        raise ValueError(
+            f"Feature mismatch: X_train has {X_train_clean.shape[1]} columns "
+            f"but X_point has {X_point_clean.shape[1]} columns."
+        )
 
     preds = []
 
-    for b in range(n_bootstrap):
-        # Step 1: Resample training data WITH replacement
-        X_boot, y_boot = resample(X_train, y_train)
+    for _ in range(n_bootstrap):
+        X_boot, y_boot = resample(X_train_clean, y_train_clean)
 
         boot_model = copy.deepcopy(model)
-        # Step 2: Retrain the model on the bootstrapped dataset
-        # model.fit(X_boot, y_boot)
         boot_model.fit(X_boot, y_boot)
 
-        # Step 3: Predict the same input point
-        pred = boot_model.predict(X_point)[0]
-        preds.append(pred)
+        pred = boot_model.predict(X_point_clean)[0]
+        preds.append(float(pred))
 
-    preds = np.array(preds)
+    preds = np.asarray(preds, dtype=np.float64)
 
-    # Step 4: Compute uncertainty statistics
     lower = np.percentile(preds, 100 * (alpha / 2))
     upper = np.percentile(preds, 100 * (1 - alpha / 2))
 
-    results = {
-        "mean": np.mean(preds),
-        "median": np.median(preds),
-        "std": np.std(preds),
-        "min": np.min(preds),
-        "max": np.max(preds),
-        "lower_95ci": lower,
-        "upper_95ci": upper,
-        "model": model_name
+    return {
+        "mean": float(np.mean(preds)),
+        "median": float(np.median(preds)),
+        "std": float(np.std(preds)),
+        "min": float(np.min(preds)),
+        "max": float(np.max(preds)),
+        "lower_95ci": float(lower),
+        "upper_95ci": float(upper),
+        "model": model_name,
     }
-
-    return results
-
 
 
 def get_feature_importance(model, feature_names):
