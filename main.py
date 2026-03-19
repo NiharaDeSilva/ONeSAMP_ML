@@ -337,6 +337,6 @@ if __name__ == "__main__":
     # =========================================================
     # INFERENCE
     # =========================================================
-
+    inputStatsList = inputStatsList['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'].apply(pd.to_numeric, errors="raise")
     train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
     model_utils.run_all_models(cfg, inputStatsList, train_path)
