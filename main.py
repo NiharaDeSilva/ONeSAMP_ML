@@ -193,7 +193,7 @@ results_list = []
 
 if (DEBUG):
     print("Start calculation of statistics for ALL populations")
-
+'''
 #statistics1 = []
 statistics1_new = []
 statistics2 = []
@@ -282,11 +282,11 @@ def main():
             results_list.append(result)
 
     return results_list
-
+'''
 
 if __name__ == "__main__":
     start_time = time.time()
-
+    '''
     results_list = main()
 
     try:
@@ -300,13 +300,14 @@ if __name__ == "__main__":
             file.write("\t".join(map(str, result)) + "\n")
 
     print("-----Population simulation time %s seconds -----" % (time.time() - start_time))
-
+    
     ########################################
     # FINISHING ALL POPULATIONS
     ########################################
 
     # Assign input and all population stats to dataframes with column names
     allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
+    '''
     inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 
     '''

@@ -31,7 +31,7 @@ echo "Running plot script on multiple CPU cores"
 #python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_100/genePop100x1000_1 > /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning2/genePop100x1000.out
 
 
-folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70/samples"
+folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70/test"
 output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/OUTPUT_TEST"
 
 
