@@ -33,7 +33,7 @@ echo "Running plot script on multiple CPU cores"
 
 folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70/samples"
 output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/OUTPUT_TEST"
-
+MODE="infer"  # simulate | tune | train | infer
 
 #Iterate through the files in the folder
 for file in "$folder"/*; do
@@ -41,7 +41,7 @@ for file in "$folder"/*; do
         filename=$(basename -- "$file")
         filename_no_extension="${filename%.*}"
         output_file="$output/${filename_no_extension}"
-        python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o "$file" > "$output_file"
+        python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --mode "$MODE" --s 20000 --o "$file" > "$output_file"
         echo "Processed $file and saved output to $output_file"
     fi
 done

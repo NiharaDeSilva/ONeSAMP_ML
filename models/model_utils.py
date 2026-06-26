@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import joblib
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import get_context
 from config import OUTPUT_PATH
 from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
@@ -122,7 +124,7 @@ def load_lasso_model(lasso_path, Z, scaler_path, train_path):
         y_train=y_train,
         X_point=Z_scaled,
         n_bootstrap=500,
-        alpha=0.01,
+        alpha=0.05,
         model_name="Lasso"
     )
     return lasso_prediction
@@ -145,10 +147,31 @@ def load_ridge_model(ridge_path, Z, scaler_path, train_path):
         y_train=y_train,
         X_point=Z_scaled,
         n_bootstrap=500,
-        alpha=10,
+        alpha=0.05,
         model_name="Ridge"
     )
     return ridge_prediction
+
+
+def _run_inference_task(task):
+    model_name = task["model_name"]
+    model_path = task["model_path"]
+    train_path = task["train_path"]
+    scaler_path = task.get("scaler_path")
+    Z = task["Z"]
+
+    if model_name == "RandomForest":
+        return load_rf_model(model_path, Z, train_path)
+    elif model_name == "XGBoost":
+        return load_xgb_model(model_path, Z, train_path)
+    elif model_name == "CatBoost":
+        return load_catboost_model(model_path, Z, train_path)
+    elif model_name == "Lasso":
+        return load_lasso_model(model_path, Z, scaler_path, train_path)
+    elif model_name == "Ridge":
+        return load_ridge_model(model_path, Z, scaler_path, train_path)
+    else:
+        raise ValueError(f"Unknown inference model: {model_name}")
 
 
 def run_all_models(cfg, Z, train_path):
@@ -158,49 +181,80 @@ def run_all_models(cfg, Z, train_path):
     rf_path     = os.path.join(folder_path, "RandomForest", f"rf_model.joblib")
     xgb_path    = os.path.join(folder_path, "XGBoost", f"xgb_model.joblib")
     catboost_path = os.path.join(folder_path, "CatBoost", f"catboost_model.joblib")
-    lasso_path  = os.path.join(folder_path, "Lassso", f"lasso_model.joblib")
+    lasso_path  = os.path.join(folder_path, "Lasso", f"lasso_model.joblib")
     ridge_path  = os.path.join(folder_path, "Ridge", f"ridge_model.joblib")
     results = []
 
-    # Random Forest (raw input, no scaler)
-    try:
-        pred = load_rf_model(rf_path, Z, train_path)
-        results.append(pred)
-        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
-    except FileNotFoundError as e:
-        print(f"[Skip] {e}")
+    tasks = []
+    if os.path.exists(rf_path):
+        tasks.append({
+            "model_name": "RandomForest",
+            "model_path": rf_path,
+            "train_path": train_path,
+            "Z": Z,
+        })
+    else:
+        print(f"[Skip] RandomForest model not found at {rf_path}")
 
-    # XGBoost (raw input, no scaler)
-    try:
-        pred = load_xgb_model(xgb_path, Z, train_path)
-        results.append(pred)
-        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
-    except FileNotFoundError as e:
-        print(f"[Skip] {e}")
+    if os.path.exists(xgb_path):
+        tasks.append({
+            "model_name": "XGBoost",
+            "model_path": xgb_path,
+            "train_path": train_path,
+            "Z": Z,
+        })
+    else:
+        print(f"[Skip] XGBoost model not found at {xgb_path}")
 
-    # CatBoost (raw input, no scaler)
-    try:
-        pred = load_catboost_model(catboost_path, Z, train_path)
-        results.append(pred)
-        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
-    except FileNotFoundError as e:
-        print(f"[Skip] {e}")
+    if os.path.exists(catboost_path):
+        tasks.append({
+            "model_name": "CatBoost",
+            "model_path": catboost_path,
+            "train_path": train_path,
+            "Z": Z,
+        })
+    else:
+        print(f"[Skip] CatBoost model not found at {catboost_path}")
 
-    # Lasso (scaled input)
-    try:
-        pred = load_lasso_model(lasso_path, Z, scaler_path, train_path)
-        results.append(pred)
-        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
-    except FileNotFoundError as e:
-        print(f"[Skip] {e}")
+    if os.path.exists(lasso_path):
+        tasks.append({
+            "model_name": "Lasso",
+            "model_path": lasso_path,
+            "train_path": train_path,
+            "scaler_path": scaler_path,
+            "Z": Z,
+        })
+    else:
+        print(f"[Skip] Lasso model not found at {lasso_path}")
 
-    # Ridge (scaled input)
-    try:
-        pred = load_ridge_model(ridge_path, Z, scaler_path, train_path)
-        results.append(pred)
-        print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
-    except FileNotFoundError as e:
-        print(f"[Skip] {e}")
+    if os.path.exists(ridge_path):
+        tasks.append({
+            "model_name": "Ridge",
+            "model_path": ridge_path,
+            "train_path": train_path,
+            "scaler_path": scaler_path,
+            "Z": Z,
+        })
+    else:
+        print(f"[Skip] Ridge model not found at {ridge_path}")
+
+    if not tasks:
+        print("No models available for inference.")
+        return results
+
+    max_workers = min(len(tasks), os.cpu_count() or 1)
+    ctx = get_context("spawn")
+    with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
+        futures = {executor.submit(_run_inference_task, task): task for task in tasks}
+        for future in as_completed(futures):
+            task = futures[future]
+            model_name = task["model_name"]
+            try:
+                pred = future.result()
+                results.append(pred)
+                print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+            except Exception as exc:
+                print(f"[Skip] {model_name} failed: {exc}")
 
     return results
 
