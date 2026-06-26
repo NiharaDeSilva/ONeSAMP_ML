@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 import argparse
 import os
 import sys

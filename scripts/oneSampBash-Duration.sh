@@ -1,4 +1,6 @@
 #!/bin/bash
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 #SBATCH --job-name=oneSamp    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=ishayooseph@ufl.edu     # Where to send mail
@@ -19,5 +21,4 @@ python3 /blue/boucher/ishayooseph/oneSampTest/main.py --o /blue/boucher/ishayoos
 
 #Running w 
 python3 /blue/boucher/ishayooseph/oneSampTest/main.py --lD 2 --uD 8 --o /blue/boucher/ishayooseph/genePop500Ix500L > 4-10-Duration.txt
-
 

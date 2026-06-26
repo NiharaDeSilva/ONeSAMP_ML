@@ -1,5 +1,9 @@
 # ONeSAMP_ML
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+Released under the GNU GPLv3; see `LICENSE` for details. Developed by Boucher Lab.
+
 ONeSAMP_ML estimates effective population size (Ne) from genomic data in GENEPOP format. The program calculates five summary statistics from an input population file, generates reference population statistics with the ONeSAMP simulator when needed, and uses supervised machine learning models to infer Ne from the summary statistics.
 
 The current implementation supports four regression models:
@@ -269,4 +273,4 @@ For questions, issues, or bug reports, please contact suhashidesilva@ufl.edu or 
 
 ## License
 
-See `LICENSE` for license information.
+ONeSAMP_ML is released under the GNU General Public License v3.0. See `LICENSE` for details.

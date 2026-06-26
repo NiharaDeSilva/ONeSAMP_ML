@@ -1,4 +1,6 @@
 #!/bin/bash
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 #SBATCH --job-name=oneSamp    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=ishayooseph@ufl.edu     # Where to send mail
@@ -26,4 +28,3 @@ python3 /blue/boucher/ishayooseph/oneSampTest/main.py --lNe 50 --uNe 800 --o /bl
 #Running w 
 python3 /blue/boucher/ishayooseph/oneSampTest/main.py --lNe 10 --uNe 200 --o /blue/boucher/ishayooseph/genePop500Ix500L > 10-200-Ne.txt
 date
-

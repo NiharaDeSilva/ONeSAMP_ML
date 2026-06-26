@@ -1,4 +1,6 @@
 #!/bin/bash
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 
 ###########################
 ###########################

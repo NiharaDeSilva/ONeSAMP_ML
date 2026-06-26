@@ -1,3 +1,5 @@
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 import os
 import json
 import warnings
@@ -300,6 +302,5 @@ def train_and_tune_models(
         },
         "inputStatsList": inputStatsList
     }
-
 
 

@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 import sys
 
 import math
@@ -470,5 +472,4 @@ class statisticsClass:
 
         if (self.DEBUG):
             print("(Expected heterozygosity) stat5 is ", self.stat5)
-
 

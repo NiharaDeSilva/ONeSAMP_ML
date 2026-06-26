@@ -1,3 +1,5 @@
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 import matplotlib
 matplotlib.use("Agg")  # Safe for HiPerGator (no display)
 

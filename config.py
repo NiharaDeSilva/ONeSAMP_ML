@@ -1,4 +1,6 @@
 # config.py
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 import os
 from dataclasses import dataclass
 
@@ -22,5 +24,4 @@ class configClass:
     fileName: str = None
     sampleSize: int = None
     numLoci: int = None
-
 

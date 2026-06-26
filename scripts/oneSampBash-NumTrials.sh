@@ -1,4 +1,6 @@
 #!/bin/bash
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 #SBATCH --job-name=oneSamp    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=ishayooseph@ufl.edu     # Where to send mail

@@ -1,3 +1,5 @@
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 import os
 import pandas as pd
 import joblib

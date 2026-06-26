@@ -1,4 +1,6 @@
 #!/bin/bash
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 #SBATCH --job-name=oneSamp    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=ishayooseph@ufl.edu     # Where to send mail
@@ -16,5 +18,4 @@ echo "Running plot script on a single CPU core"
 
 #Running w default theta
 python3 /blue/boucher/ishayooseph/oneSampTest/main.py --o /blue/boucher/ishayooseph/genePop500Ix500L > defaultTheta.txt
-
 

@@ -1,3 +1,5 @@
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 invisible(cat(sprintf("Below are the mean, median, and 95 credible limits ")))
 invisible(cat(sprintf("for the posterior distribution of the effective ")))
 invisible(cat(sprintf("population size from OneSamp\n")))
@@ -223,4 +225,3 @@ invisible(cat(sprintf("%.2f      %.2f      %.2f      %.2f      %.2f      %.2f\n"
 #mode <- loc1stats(result1$x,prob=0.05)[1]
 #hpdlu <- loc1stats(result1$x,prob=0.05)[2:3]
 q()
-

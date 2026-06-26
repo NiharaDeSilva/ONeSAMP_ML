@@ -1,4 +1,6 @@
 # Prediction using trained models
+# Released under the GNU GPLv3; see LICENSE for details.
+# Developed by Boucher Lab,
 import numpy as np
 import pandas as pd
 import os
