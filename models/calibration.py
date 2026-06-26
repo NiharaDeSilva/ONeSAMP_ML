@@ -113,7 +113,7 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     plt.yticks(fontsize=TICK_SIZE)
 
     plt.title(f"{model_name}: LOWESS Calibration Curve", fontsize=TITLE_SIZE)
-    plt.legend(fontsize=LEGEND_SIZE)
+    #plt.legend(fontsize=LEGEND_SIZE)
     plt.tight_layout()
     plt.savefig(f"{prefix}_lowess.png", dpi=300)
     plt.close()
@@ -142,7 +142,7 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     plt.xticks(fontsize=TICK_SIZE)
     plt.yticks(fontsize=TICK_SIZE)
 
-    plt.legend(fontsize=LEGEND_SIZE)
+    #plt.legend(fontsize=LEGEND_SIZE)
     plt.tight_layout()
     plt.savefig(f"{prefix}_linear_fit.png", dpi=300)
     plt.close()

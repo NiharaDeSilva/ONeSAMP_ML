@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import argparse
 import os
+import sys
 import pandas as pd
 import time
 import random
@@ -10,9 +11,9 @@ import shutil
 from statistics import statisticsClass
 import models.train as train
 import models.model_utils as model_utils
+from models.tuning import train_and_tune_models
 
 from config import configClass, OUTPUT_PATH, BASE_PATH, POPULATION_GENERATOR, TEMP_DIR
-from models.tuning import train_and_tune_models
 
 NUMBER_OF_STATISTICS = 5
 t = 1
@@ -20,11 +21,7 @@ DEBUG = 0  ## BOUCHER: Change this to 1 for debuggin mode
 # OUTPUTFILENAME = "priors.txt"
 
 
-directory = "temp"
-
-path = os.path.join("./", directory)
-
-path = TEMP_DIR
+temp_dir = TEMP_DIR
 output_path = OUTPUT_PATH
 
 
@@ -51,6 +48,10 @@ parser.add_argument("--l", type=float, help="Missing data for loci")
 parser.add_argument("--o", type=str, help="The File Name")
 parser.add_argument("--t", type=int, help="Repeat times")
 parser.add_argument("--n", type=bool, help="whether to filter the monomorphic loci", default=False)
+parser.add_argument("--mode", type=str, choices=["simulate", "tune", "train", "infer"], default="simulate",
+                    help="Execution mode: simulate all populations, tune models, train models, or run inference")
+parser.add_argument("--allpopstats", type=str,
+                    help="Path to an existing allPopStats file for tune/train/infer modes")
 
 # parser.add_argument("--md", type=str, help="Model Name")
 
@@ -193,7 +194,7 @@ results_list = []
 
 if (DEBUG):
     print("Start calculation of statistics for ALL populations")
-'''
+
 #statistics1 = []
 statistics1_new = []
 statistics2 = []
@@ -217,7 +218,7 @@ def processRandomPopulation(x):
     process_id = os.getpid()
     # change the intermediate file name by process id
     intermediateFilename = str(process_id) + "_intermediate_" + getName(fileName) + "_" + str(t)
-    intermediateFile = os.path.join(directory, intermediateFilename)
+    intermediateFile = os.path.join(temp_dir, intermediateFilename)
     Ne_left = lowerNe
     Ne_right = upperNe
     if Ne_left % 2 != 0:
@@ -268,13 +269,9 @@ def processRandomPopulation(x):
     return textList
 
 
-try:
-    os.mkdir(path)
-except FileExistsError:
-    pass
+os.makedirs(temp_dir, exist_ok=True)
 
-
-def main():
+def generate_all_pop_results():
     results_list = []
     ctx = multiprocessing.get_context("spawn")
     with concurrent.futures.ProcessPoolExecutor(max_workers=16, mp_context=ctx) as executor:
@@ -282,62 +279,77 @@ def main():
             results_list.append(result)
 
     return results_list
-'''
+
 
 if __name__ == "__main__":
     start_time = time.time()
-    '''
-    results_list = main()
 
-    try:
-        shutil.rmtree(directory)
-    except FileNotFoundError:
-        print(f"Directory '{directory}' not found.")
+    allPopStats_path = args.allpopstats or os.path.join(OUTPUT_PATH, f"allPopStats_genePop{sampleSize}x{numLoci}_1")
 
-    allPopStats = os.path.join(BASE_PATH, f"allPopStats_{getName(fileName)}")
-    with open(allPopStats, "w") as file:
-        for result in results_list:
-            file.write("\t".join(map(str, result)) + "\n")
+    # Generate all population statistics when needed
+    def write_all_pop_stats(results, path):
+        with open(path, "w") as file:
+            for result in results:
+                file.write("\t".join(map(str, result)) + "\n")
+        print(f"Wrote all population stats to {path}")
 
-    print("-----Population simulation time %s seconds -----" % (time.time() - start_time))
-    
-    ########################################
-    # FINISHING ALL POPULATIONS
-    ########################################
+    def load_all_pop_statistics(path):
+        return pd.read_csv(
+            path,
+            sep='\t',
+            header=None,
+            names=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
+        )
 
-    # Assign input and all population stats to dataframes with column names
-    allPopStatistics = pd.DataFrame(results_list, columns=['Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
-    '''
+    def ensure_all_pop_stats(path):
+        if os.path.exists(path):
+            print(f"Using existing all population stats: {path}")
+            return None
+        results = generate_all_pop_results()
+        write_all_pop_stats(results, path)
+        return results
+
+    if args.mode in ["simulate", "tune", "train"]:
+        simulate_results = ensure_all_pop_stats(allPopStats_path)
+        if args.mode == "simulate":
+            sys.exit(0)
+    elif args.mode == "infer":
+        if not os.path.exists(allPopStats_path):
+            print(f"ERROR: Inference mode requires existing allPopStats at {allPopStats_path}")
+            sys.exit(1)
+    else:
+        print(f"ERROR: Unknown mode '{args.mode}'")
+        sys.exit(1)
+
+    # Load or validate all population statistics file
+    allPopStatistics = load_all_pop_statistics(allPopStats_path)
     inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 
-    '''
-    
-    # =========================================================
-    # TUNE MODELS
-    # =========================================================
-    
-    if __name__ == "__main__":
-        input_sample_size ="f{sampleSize}x{numLoci}"
-        allPopStatistics = pd.read_csv(allPopStats_path, sep='\t', header=None, names=[ 'Ne','Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance','Fix_index','Emean_exhyt'])
+    if args.mode == "tune":
+        input_sample_size = f"{sampleSize}x{numLoci}"
         results = train_and_tune_models(
             allPopStatistics=allPopStatistics,
             input_text_list=textList,
             input_sample_size=input_sample_size,
             output_dir=output_path,
             n_splits=5,
-            random_state=42)
-    
-        print(results["results_df"])
-    '''
-    # =========================================================
-    # TRAIN MODEL
-    # =========================================================
-    # train.run_model_training('all', allPopStatistics, inputStatsList)
-    # train.run_model_training(cfg, 5, allPopStatistics, inputStatsList)
+            random_state=42,
+        )
+        print(results.get("results_df", "No results dataframe available."))
+        sys.exit(0)
 
-    # =========================================================
-    # INFERENCE
-    # =========================================================
-    inputStatsList = inputStatsList['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'].apply(pd.to_numeric, errors="raise")
-    train_path  = os.path.join(output_path, f'allPopStats_genePop{sampleSize}x{numLoci}_1')
-    model_utils.run_all_models(cfg, inputStatsList, train_path)
+    if args.mode == "train":
+        train.run_model_training(cfg, 'all', allPopStatistics, inputStatsList)
+        sys.exit(0)
+
+    if args.mode == "infer":
+        train_path = allPopStats_path
+        inference_start = time.time()
+        model_utils.run_all_models(cfg, inputStatsList, train_path)
+        inference_elapsed = time.time() - inference_start
+        print(f"Inference time: {inference_elapsed:.2f} seconds")
+        sys.exit(0)
+
+    # Should never get here
+    print(f"Completed mode: {args.mode}")
+    sys.exit(0)

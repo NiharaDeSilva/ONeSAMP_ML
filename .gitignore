@@ -8,7 +8,13 @@ data_*
 output_*
 plots_*
 statCal_files
+Final/
+OLD
+main_old*
+
+
 
 __pycache**
 # Ignore log files
 serial*
+log*

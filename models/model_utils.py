@@ -122,7 +122,7 @@ def load_lasso_model(lasso_path, Z, scaler_path, train_path):
         y_train=y_train,
         X_point=Z_scaled,
         n_bootstrap=500,
-        alpha=0.01,
+        alpha=0.05,
         model_name="Lasso"
     )
     return lasso_prediction
@@ -145,7 +145,7 @@ def load_ridge_model(ridge_path, Z, scaler_path, train_path):
         y_train=y_train,
         X_point=Z_scaled,
         n_bootstrap=500,
-        alpha=10,
+        alpha=0.05,
         model_name="Ridge"
     )
     return ridge_prediction
@@ -158,7 +158,7 @@ def run_all_models(cfg, Z, train_path):
     rf_path     = os.path.join(folder_path, "RandomForest", f"rf_model.joblib")
     xgb_path    = os.path.join(folder_path, "XGBoost", f"xgb_model.joblib")
     catboost_path = os.path.join(folder_path, "CatBoost", f"catboost_model.joblib")
-    lasso_path  = os.path.join(folder_path, "Lassso", f"lasso_model.joblib")
+    lasso_path  = os.path.join(folder_path, "Lasso", f"lasso_model.joblib")
     ridge_path  = os.path.join(folder_path, "Ridge", f"ridge_model.joblib")
     results = []
 
