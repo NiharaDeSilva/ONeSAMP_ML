@@ -284,7 +284,7 @@ def generate_all_pop_results():
 if __name__ == "__main__":
     start_time = time.time()
 
-    allPopStats_path = args.allpopstats or os.path.join(BASE_PATH, f"allPopStats_{getName(fileName)}")
+    allPopStats_path = args.allpopstats or os.path.join(OUTPUT_PATH, f"allPopStats_genePop{sampleSize}x{numLoci}_1")
 
     # Generate all population statistics when needed
     def write_all_pop_stats(results, path):

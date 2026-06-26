@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --account=boucher
-#SBATCH --job-name=oneSamp    # Job name
+#SBATCH --job-name=oneSampML    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=suhashidesilva@ufl.edu     # Where to send mail
 #SBATCH --ntasks=1		      # Number of tasks
-#SBATCH --cpus-per-task=16	      # Number of cores per task
-#SBATCH --mem=100gb                     # Job memory request
-#SBATCH --time=240:00:00               # Time limit hrs:min:sec
+#SBATCH --cpus-per-task=8	      # Number of cores per task
+#SBATCH --mem=40gb                     # Job memory request
+#SBATCH --time=90:00:00               # Time limit hrs:min:sec
 #SBATCH --output=log_files/serial_test_%j.log   # Standard output and error log
+#SBATCH --account=boucher
 
 # Increase file descriptor limit
 ulimit -n 8192  # Set this to a higher number like 8192 or 16384
@@ -31,9 +31,10 @@ echo "Running plot script on multiple CPU cores"
 #python /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/main.py --s 20000 --o /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_100/genePop100x1000_1 > /blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/output_tuning2/genePop100x1000.out
 
 
-folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_70/samples"
-output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/OUTPUT_TEST"
+folder="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/data_100/samples/1000"
+output="/blue/boucher/suhashidesilva/2025/Revision/ONeSAMP_ML/Final/output_ml_100"
 MODE="infer"  # simulate | tune | train | infer
+
 
 #Iterate through the files in the folder
 for file in "$folder"/*; do
