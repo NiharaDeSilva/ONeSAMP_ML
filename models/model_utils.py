@@ -8,6 +8,33 @@ from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
 output_path = OUTPUT_PATH
+MODEL_ORDER = ["RandomForest", "XGBoost", "Lasso", "Ridge"]
+MODEL_ALIASES = {
+    "rf": "RandomForest",
+    "xb": "XGBoost",
+    "ls": "Lasso",
+    "rd": "Ridge",
+}
+
+
+def normalize_model_selection(model_selection):
+    if model_selection is None or model_selection == "all":
+        return MODEL_ORDER
+
+    if isinstance(model_selection, str):
+        selections = model_selection.split(",")
+    else:
+        selections = list(model_selection)
+
+    selected_models = []
+    for selection in selections:
+        model_name = MODEL_ALIASES.get(str(selection).strip().lower(), str(selection).strip())
+        if model_name not in MODEL_ORDER:
+            raise ValueError(f"Unknown model selection: {selection}")
+        if model_name not in selected_models:
+            selected_models.append(model_name)
+
+    return selected_models
 
 def set_size(cfg):
     loci = cfg.numLoci
@@ -87,26 +114,6 @@ def load_xgb_model(xgb_path, Z, train_path):
     return xgb_prediction
 
 
-def load_catboost_model(catboost_path, Z, train_path):
-    if not os.path.exists(catboost_path):
-        raise FileNotFoundError(f"Model file {catboost_path} does not exist.")
-
-    X_train, y_train = load_training_data(train_path)
-    # X_train_s = scaler.transform(X_train)
-    # Z_scaled = scaler.transform(Z.values)
-
-    catboost_model = joblib.load(catboost_path)
-    xgb_prediction = bootstrap_uncertainty(
-        model=catboost_model,
-        X_train=X_train,
-        y_train=y_train,
-        X_point=Z,
-        n_bootstrap=500,
-        model_name="CatBoost"
-    )
-    return xgb_prediction
-
-
 def load_lasso_model(lasso_path, Z, scaler_path, train_path):
     if not os.path.exists(lasso_path):
         raise FileNotFoundError(f"Model file {lasso_path} does not exist.")
@@ -164,8 +171,6 @@ def _run_inference_task(task):
         return load_rf_model(model_path, Z, train_path)
     elif model_name == "XGBoost":
         return load_xgb_model(model_path, Z, train_path)
-    elif model_name == "CatBoost":
-        return load_catboost_model(model_path, Z, train_path)
     elif model_name == "Lasso":
         return load_lasso_model(model_path, Z, scaler_path, train_path)
     elif model_name == "Ridge":
@@ -174,69 +179,53 @@ def _run_inference_task(task):
         raise ValueError(f"Unknown inference model: {model_name}")
 
 
-def run_all_models(cfg, Z, train_path):
+def run_all_models(cfg, Z, train_path, model_selection=None):
+    selected_model_names = normalize_model_selection(model_selection)
     loci, sampleSize = set_size(cfg)
     folder_path = os.path.join(OUTPUT_PATH, f"{sampleSize}x{loci}")
     scaler_path = os.path.join(folder_path, f"scaler.joblib")
     rf_path     = os.path.join(folder_path, "RandomForest", f"rf_model.joblib")
     xgb_path    = os.path.join(folder_path, "XGBoost", f"xgb_model.joblib")
-    catboost_path = os.path.join(folder_path, "CatBoost", f"catboost_model.joblib")
     lasso_path  = os.path.join(folder_path, "Lasso", f"lasso_model.joblib")
     ridge_path  = os.path.join(folder_path, "Ridge", f"ridge_model.joblib")
     results = []
 
     tasks = []
-    if os.path.exists(rf_path):
-        tasks.append({
+    task_map = {
+        "RandomForest": {
             "model_name": "RandomForest",
             "model_path": rf_path,
             "train_path": train_path,
             "Z": Z,
-        })
-    else:
-        print(f"[Skip] RandomForest model not found at {rf_path}")
-
-    if os.path.exists(xgb_path):
-        tasks.append({
+        },
+        "XGBoost": {
             "model_name": "XGBoost",
             "model_path": xgb_path,
             "train_path": train_path,
             "Z": Z,
-        })
-    else:
-        print(f"[Skip] XGBoost model not found at {xgb_path}")
-
-    if os.path.exists(catboost_path):
-        tasks.append({
-            "model_name": "CatBoost",
-            "model_path": catboost_path,
-            "train_path": train_path,
-            "Z": Z,
-        })
-    else:
-        print(f"[Skip] CatBoost model not found at {catboost_path}")
-
-    if os.path.exists(lasso_path):
-        tasks.append({
+        },
+        "Lasso": {
             "model_name": "Lasso",
             "model_path": lasso_path,
             "train_path": train_path,
             "scaler_path": scaler_path,
             "Z": Z,
-        })
-    else:
-        print(f"[Skip] Lasso model not found at {lasso_path}")
-
-    if os.path.exists(ridge_path):
-        tasks.append({
+        },
+        "Ridge": {
             "model_name": "Ridge",
             "model_path": ridge_path,
             "train_path": train_path,
             "scaler_path": scaler_path,
             "Z": Z,
-        })
-    else:
-        print(f"[Skip] Ridge model not found at {ridge_path}")
+        },
+    }
+
+    for model_name in selected_model_names:
+        task = task_map[model_name]
+        if os.path.exists(task["model_path"]):
+            tasks.append(task)
+        else:
+            print(f"[Skip] {model_name} model not found at {task['model_path']}")
 
     if not tasks:
         print("No models available for inference.")
@@ -257,4 +246,3 @@ def run_all_models(cfg, Z, train_path):
                 print(f"[Skip] {model_name} failed: {exc}")
 
     return results
-

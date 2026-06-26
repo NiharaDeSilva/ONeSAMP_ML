@@ -70,7 +70,7 @@ def bootstrap_uncertainty(
 ):
     """
     General non-parametric bootstrap uncertainty estimator.
-    for RF, XGBoost, LightGBM, CatBoost, Lasso, Ridge,
+    for RF, XGBoost, Lasso, Ridge.
     """
 
     # Sanitize inputs once up front
@@ -203,7 +203,7 @@ def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, 
     print_stats_inline(f"{model_name} Prediction Stats", boot_stats)
 
     # Interpretation
-    if model_name in ["RandomForest", "XGBoost", "CatBoost"]:
+    if model_name in ["RandomForest", "XGBoost"]:
         get_feature_importance(model, feature_names)
 
     elif model_name in ["Lasso", "Ridge"]:

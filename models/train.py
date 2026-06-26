@@ -20,14 +20,19 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.pipeline import Pipeline
 from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
-from catboost import CatBoostRegressor
 
 from models.predict import predict_and_evaluate_model
 from models.calibration import calibration_curves
 from config import OUTPUT_PATH, PLOT_DIR
 
 output_path = OUTPUT_PATH
+MODEL_ORDER = ["RandomForest", "XGBoost", "Lasso", "Ridge"]
+MODEL_ALIASES = {
+    "rf": "RandomForest",
+    "xb": "XGBoost",
+    "ls": "Lasso",
+    "rd": "Ridge",
+}
 
 
 # -----------------------------------
@@ -53,24 +58,44 @@ def make_run_dir(cfg):
 def get_model_dir(run_dir, model_name):
     return ensure_dir(os.path.join(run_dir, model_name))
 
-def get_lgbm_path(cfg):
-    loci, sampleSize = set_size(cfg)
-    return os.path.join(output_path, f"lgbm_model_{sampleSize}x{loci}.joblib")
-
-def get_catboost_path(cfg):
-    loci, sampleSize = set_size(cfg)
-    return os.path.join(output_path, f"catboost_model_{sampleSize}x{loci}.joblib")
-
 def get_model_filename(model_name):
     mapping = {
         "RandomForest": "rf_model.joblib",
         "XGBoost": "xgb_model.joblib",
         "Lasso": "lasso_model.joblib",
         "Ridge": "ridge_model.joblib",
-        "CatBoost": "catboost_model.joblib",
     }
     return mapping[model_name]
 
+
+def normalize_model_selection(model_selection):
+    if model_selection is None or model_selection == "all":
+        return MODEL_ORDER
+
+    if isinstance(model_selection, int):
+        if model_selection < 0 or model_selection >= len(MODEL_ORDER):
+            raise ValueError(f"Unknown model selection: {model_selection}")
+        return [MODEL_ORDER[model_selection]]
+
+    if isinstance(model_selection, str):
+        selections = model_selection.split(",")
+    else:
+        selections = list(model_selection)
+
+    selected_models = []
+    for selection in selections:
+        if isinstance(selection, int):
+            model_name = normalize_model_selection(selection)[0]
+        else:
+            stripped_selection = str(selection).strip()
+            model_name = MODEL_ALIASES.get(stripped_selection.lower(), stripped_selection)
+
+        if model_name not in MODEL_ORDER:
+            raise ValueError(f"Unknown model selection: {selection}")
+        if model_name not in selected_models:
+            selected_models.append(model_name)
+
+    return selected_models
 
 
 def get_plot_dir(cfg, run_dir=None, model_name=None):
@@ -156,17 +181,6 @@ def get_model_builders():
             random_state=42,
             n_jobs=1,   # keep inner parallelism off
         ),
-
-        "CatBoost": lambda: CatBoostRegressor(
-            loss_function="RMSE",
-            iterations=1000,
-            learning_rate=0.04,
-            depth=8,
-            random_seed=42,
-            thread_count=1,
-            verbose=False,
-            allow_writing_files=False
-        )
     }
 
 
@@ -179,7 +193,7 @@ def build_cv_model(model_name, model_constructor):
     return model_constructor()
 
 
-def get_cv_results_all_models(X_train, y_train, cv_folds=5):
+def get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=None):
     kf = KFold(n_splits=cv_folds, shuffle=True, random_state=42)
     scoring = {
         "rmse": make_scorer(rmse_scorer, greater_is_better=False),
@@ -189,8 +203,10 @@ def get_cv_results_all_models(X_train, y_train, cv_folds=5):
 
     results = {}
     model_builders = get_model_builders()
+    selected_model_names = normalize_model_selection(model_names)
 
-    for name, constructor in model_builders.items():
+    for name in selected_model_names:
+        constructor = model_builders[name]
         model = build_cv_model(name, constructor)
         cv = cross_validate(model, X_train, y_train, cv=kf, scoring=scoring, n_jobs=1)
 
@@ -357,6 +373,7 @@ def write_combined_training_report(run_dir, results, ordered_model_names):
 # -----------------------------------
 
 def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
+    selected_model_names = normalize_model_selection(model_selection)
     feature_cols = [
         'Gametic_equilibrium',
         'Mlocus_homozegosity_mean',
@@ -379,7 +396,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
         X, y, test_size=0.3, random_state=40
     )
 
-    cv_results = get_cv_results_all_models(X_train, y_train, cv_folds=5)
+    cv_results = get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=selected_model_names)
     with open(os.path.join(run_dir, "cv_results.json"), "w") as f:
         json.dump(cv_results, f, indent=2)
 
@@ -393,7 +410,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
 
     # --- Prepare task descriptions ---
     task_map = {
-        0: {
+        "RandomForest": {
             "cfg": cfg,
             "model_name": "RandomForest",
             "X_train": X_train,
@@ -403,7 +420,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
             "Z": Z,
             "feature_cols": feature_cols,
         },
-        1: {
+        "XGBoost": {
             "cfg": cfg,
             "model_name": "XGBoost",
             "X_train": X_train,
@@ -413,7 +430,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
             "Z": Z,
             "feature_cols": feature_cols,
         },
-        2: {
+        "Lasso": {
             "cfg": cfg,
             "model_name": "Lasso",
             "X_train": X_train_scaled,
@@ -423,7 +440,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
             "Z": Z_scaled,
             "feature_cols": feature_cols,
         },
-        3: {
+        "Ridge": {
             "cfg": cfg,
             "model_name": "Ridge",
             "X_train": X_train_scaled,
@@ -433,31 +450,23 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
             "Z": Z_scaled,
             "feature_cols": feature_cols,
         },
-        4: {
-            "cfg": cfg,
-            "model_name": "CatBoost",
-            "X_train": X_train,
-            "y_train": y_train,
-            "X_test": X_test,
-            "y_test": y_test,
-            "Z": Z,
-            "feature_cols": feature_cols,
-        },
     }
 
-    for idx, task in task_map.items():
+    selected_tasks = [task_map[model_name] for model_name in selected_model_names]
+
+    for task in selected_tasks:
         model_dir = get_model_dir(run_dir, task["model_name"])
         task["model_dir"] = model_dir
         task["model_path"] = os.path.join(model_dir, get_model_filename(task["model_name"]))
 
     # --- Single model path ---
-    if model_selection in [0, 1, 2, 3, 4]:
-        result = _run_single_model_task(task_map[model_selection])
+    if len(selected_tasks) == 1:
+        result = _run_single_model_task(selected_tasks[0])
         model = joblib.load(result["model_path"])
         return model
 
-    # --- Parallel path: train all 5 in separate processes ---
-    max_workers = min(5, os.cpu_count() or 1)
+    # --- Parallel path: train selected models in separate processes ---
+    max_workers = min(len(selected_tasks), os.cpu_count() or 1)
 
     # spawn is the safest cross-platform start method
     ctx = get_context("spawn")
@@ -466,19 +475,11 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
     with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
         futures = {
             executor.submit(_run_single_model_task, task): task["model_name"]
-            for task in task_map.values()
+            for task in selected_tasks
         }
 
         for future in as_completed(futures):
             result = future.result()
             results[result["model_name"]] = result
 
-    ordered_model_names = [
-        "RandomForest",
-        "XGBoost",
-        "Lasso",
-        "Ridge",
-        "CatBoost",
-    ]
-
-    write_combined_training_report(run_dir, results, ordered_model_names)
+    write_combined_training_report(run_dir, results, selected_model_names)

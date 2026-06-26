@@ -11,7 +11,6 @@ import shutil
 from statistics import statisticsClass
 import models.train as train
 import models.model_utils as model_utils
-from models.tuning import train_and_tune_models
 
 from config import configClass, OUTPUT_PATH, BASE_PATH, POPULATION_GENERATOR, TEMP_DIR
 
@@ -28,6 +27,41 @@ output_path = OUTPUT_PATH
 def getName(filename):
     (_, filename) = os.path.split(filename)
     return filename
+
+
+MODEL_ALIASES = {
+    "rf": "RandomForest",
+    "xb": "XGBoost",
+    "ls": "Lasso",
+    "rd": "Ridge",
+}
+
+
+def parse_model_codes(model_codes):
+    if model_codes is None or model_codes.lower() == "all":
+        return None
+
+    selected_models = []
+    invalid_codes = []
+    for code in model_codes.split(","):
+        normalized_code = code.strip().lower()
+        if not normalized_code:
+            continue
+        model_name = MODEL_ALIASES.get(normalized_code)
+        if model_name is None:
+            invalid_codes.append(code.strip())
+            continue
+        if model_name not in selected_models:
+            selected_models.append(model_name)
+
+    if invalid_codes:
+        valid_codes = ", ".join(sorted(MODEL_ALIASES))
+        raise ValueError(f"Unknown model code(s): {', '.join(invalid_codes)}. Valid codes: {valid_codes}, or all.")
+
+    if not selected_models:
+        raise ValueError("No valid model codes were provided.")
+
+    return selected_models
 
 
 #############################################################
@@ -48,14 +82,20 @@ parser.add_argument("--l", type=float, help="Missing data for loci")
 parser.add_argument("--o", type=str, help="The File Name")
 parser.add_argument("--t", type=int, help="Repeat times")
 parser.add_argument("--n", type=bool, help="whether to filter the monomorphic loci", default=False)
-parser.add_argument("--mode", type=str, choices=["simulate", "tune", "train", "infer"], default="simulate",
-                    help="Execution mode: simulate all populations, tune models, train models, or run inference")
+parser.add_argument("--mode", type=str, choices=["train", "infer"], default="train",
+                    help="Execution mode: train models or run inference")
 parser.add_argument("--allpopstats", type=str,
-                    help="Path to an existing allPopStats file for tune/train/infer modes")
+                    help="Path to an existing allPopStats file for train/infer modes")
+parser.add_argument("--models", type=str, default="all",
+                    help="Comma-separated ML model codes for train/infer. Use rf, xb, ls, rd, or all. Default: all")
 
 # parser.add_argument("--md", type=str, help="Model Name")
 
 args = parser.parse_args()
+try:
+    selected_models = parse_model_codes(args.models)
+except ValueError as exc:
+    parser.error(str(exc))
 
 #########################################
 # INITIALIZING PARAMETERS
@@ -309,10 +349,8 @@ if __name__ == "__main__":
         write_all_pop_stats(results, path)
         return results
 
-    if args.mode in ["simulate", "tune", "train"]:
-        simulate_results = ensure_all_pop_stats(allPopStats_path)
-        if args.mode == "simulate":
-            sys.exit(0)
+    if args.mode == "train":
+        ensure_all_pop_stats(allPopStats_path)
     elif args.mode == "infer":
         if not os.path.exists(allPopStats_path):
             print(f"ERROR: Inference mode requires existing allPopStats at {allPopStats_path}")
@@ -321,31 +359,17 @@ if __name__ == "__main__":
         print(f"ERROR: Unknown mode '{args.mode}'")
         sys.exit(1)
 
-    # Load or validate all population statistics file
-    allPopStatistics = load_all_pop_statistics(allPopStats_path)
     inputStatsList = pd.DataFrame([textList], columns=['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt'])
 
-    if args.mode == "tune":
-        input_sample_size = f"{sampleSize}x{numLoci}"
-        results = train_and_tune_models(
-            allPopStatistics=allPopStatistics,
-            input_text_list=textList,
-            input_sample_size=input_sample_size,
-            output_dir=output_path,
-            n_splits=5,
-            random_state=42,
-        )
-        print(results.get("results_df", "No results dataframe available."))
-        sys.exit(0)
-
     if args.mode == "train":
-        train.run_model_training(cfg, 'all', allPopStatistics, inputStatsList)
+        allPopStatistics = load_all_pop_statistics(allPopStats_path)
+        train.run_model_training(cfg, selected_models, allPopStatistics, inputStatsList)
         sys.exit(0)
 
     if args.mode == "infer":
         train_path = allPopStats_path
         inference_start = time.time()
-        model_utils.run_all_models(cfg, inputStatsList, train_path)
+        model_utils.run_all_models(cfg, inputStatsList, train_path, selected_models)
         inference_elapsed = time.time() - inference_start
         print(f"Inference time: {inference_elapsed:.2f} seconds")
         sys.exit(0)
