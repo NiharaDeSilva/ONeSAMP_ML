@@ -346,13 +346,16 @@ if __name__ == "__main__":
     def ensure_all_pop_stats(path):
         if os.path.exists(path):
             print(f"Using existing all population stats: {path}")
-            return None
+            return 0.0
+        simulation_start = time.time()
         results = generate_all_pop_results()
         write_all_pop_stats(results, path)
-        return results
+        simulation_elapsed = time.time() - simulation_start
+        print(f"Simulation and summary statistics time: {simulation_elapsed:.2f} seconds")
+        return simulation_elapsed
 
     if args.mode == "train":
-        ensure_all_pop_stats(allPopStats_path)
+        simulation_elapsed = ensure_all_pop_stats(allPopStats_path)
     elif args.mode == "infer":
         if not os.path.exists(allPopStats_path):
             print(f"ERROR: Inference mode requires existing allPopStats at {allPopStats_path}")
@@ -365,7 +368,13 @@ if __name__ == "__main__":
 
     if args.mode == "train":
         allPopStatistics = load_all_pop_statistics(allPopStats_path)
-        train.run_model_training(cfg, selected_models, allPopStatistics, inputStatsList)
+        train.run_model_training(
+            cfg,
+            selected_models,
+            allPopStatistics,
+            inputStatsList,
+            simulation_elapsed_seconds=simulation_elapsed,
+        )
         sys.exit(0)
 
     if args.mode == "infer":

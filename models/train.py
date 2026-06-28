@@ -271,13 +271,14 @@ def _run_single_model_task(task):
         "status": "success",
         "metrics": None,
         "feature_scores": None,
+        "elapsed_seconds": None,
         "log_text": "",
     }
+    start = time.time()
 
     try:
         with redirect_stdout(log_buffer), redirect_stderr(log_buffer):
             print(f"\n------------- {model_name.upper()} -------------")
-            start = time.time()
 
             model = train_model(
                 cfg=cfg,
@@ -302,6 +303,7 @@ def _run_single_model_task(task):
             )
 
             elapsed = time.time() - start
+            result["elapsed_seconds"] = elapsed
             print(f"Time taken: {elapsed:.2f} seconds")
 
             if eval_out is not None:
@@ -310,7 +312,9 @@ def _run_single_model_task(task):
 
     except Exception:
         result["status"] = "failed"
+        result["elapsed_seconds"] = time.time() - start
         with redirect_stdout(log_buffer), redirect_stderr(log_buffer):
+            print(f"Time taken before failure: {result['elapsed_seconds']:.2f} seconds")
             traceback.print_exc()
 
     result["log_text"] = log_buffer.getvalue()
@@ -322,15 +326,40 @@ def _run_single_model_task(task):
     return result
 
 
-def write_combined_training_report(run_dir, results, ordered_model_names):
+def write_combined_training_report(
+    run_dir,
+    results,
+    ordered_model_names,
+    model_training_elapsed_seconds=None,
+    simulation_elapsed_seconds=0.0,
+):
     summary_txt = os.path.join(run_dir, "training_summary.txt")
     summary_json = os.path.join(run_dir, "training_metrics.json")
+    total_elapsed_seconds = None
+    if model_training_elapsed_seconds is not None:
+        total_elapsed_seconds = model_training_elapsed_seconds + simulation_elapsed_seconds
 
-    serializable = {}
+    serializable = {
+        "selected_models": ordered_model_names,
+        "simulation_summary_stats_time_seconds": simulation_elapsed_seconds,
+        "model_training_time_seconds": model_training_elapsed_seconds,
+        "total_training_time_seconds": total_elapsed_seconds,
+    }
 
     with open(summary_txt, "w") as f:
         f.write("COMBINED TRAINING REPORT\n")
         f.write("=" * 80 + "\n\n")
+        f.write(f"Selected models: {', '.join(ordered_model_names)}\n")
+        f.write(f"Simulation and summary statistics time: {simulation_elapsed_seconds:.2f} seconds\n")
+        if model_training_elapsed_seconds is not None:
+            f.write(f"Model training time for selected models: {model_training_elapsed_seconds:.2f} seconds\n")
+        if total_elapsed_seconds is not None:
+            f.write(
+                "Total training time "
+                "(simulation/statistics + selected models): "
+                f"{total_elapsed_seconds:.2f} seconds\n"
+            )
+        f.write("\n")
 
         for model_name in ordered_model_names:
             if model_name not in results:
@@ -341,6 +370,7 @@ def write_combined_training_report(run_dir, results, ordered_model_names):
                 "status": r["status"],
                 "metrics": r["metrics"],
                 "feature_scores": r["feature_scores"],
+                "elapsed_seconds": r["elapsed_seconds"],
                 "model_path": r["model_path"],
                 "model_dir": r["model_dir"],
             }
@@ -348,6 +378,8 @@ def write_combined_training_report(run_dir, results, ordered_model_names):
             f.write(f"{model_name}\n")
             f.write("-" * 80 + "\n")
             f.write(f"Status: {r['status']}\n")
+            if r["elapsed_seconds"] is not None:
+                f.write(f"Model time: {r['elapsed_seconds']:.2f} seconds\n")
 
             if r["metrics"] is not None:
                 m = r["metrics"]
@@ -374,7 +406,7 @@ def write_combined_training_report(run_dir, results, ordered_model_names):
 # Run Model Training
 # -----------------------------------
 
-def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
+def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, simulation_elapsed_seconds=0.0):
     selected_model_names = normalize_model_selection(model_selection)
     feature_cols = [
         'Gametic_equilibrium',
@@ -461,9 +493,20 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
         task["model_dir"] = model_dir
         task["model_path"] = os.path.join(model_dir, get_model_filename(task["model_name"]))
 
+    selected_training_start = time.time()
+
     # --- Single model path ---
     if len(selected_tasks) == 1:
         result = _run_single_model_task(selected_tasks[0])
+        model_training_elapsed = time.time() - selected_training_start
+        results = {result["model_name"]: result}
+        write_combined_training_report(
+            run_dir,
+            results,
+            selected_model_names,
+            model_training_elapsed,
+            simulation_elapsed_seconds,
+        )
         model = joblib.load(result["model_path"])
         return model
 
@@ -484,4 +527,11 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList):
             result = future.result()
             results[result["model_name"]] = result
 
-    write_combined_training_report(run_dir, results, selected_model_names)
+    model_training_elapsed = time.time() - selected_training_start
+    write_combined_training_report(
+        run_dir,
+        results,
+        selected_model_names,
+        model_training_elapsed,
+        simulation_elapsed_seconds,
+    )
