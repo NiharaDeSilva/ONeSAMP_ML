@@ -145,7 +145,7 @@ python main.py [options]
 | `--m` | float | `0.05` | Minimum allele frequency. |
 | `--r` | float | `0.000000012` | Mutation rate. |
 | `--lNe` | integer | `4` | Lower bound of the Ne range. |
-| `--uNe` | integer | `200` | Upper bound of the Ne range. |
+| `--uNe` | integer | `400` | Upper bound of the Ne range. |
 | `--lT` | float | `0.000048` | Lower bound of the theta range. |
 | `--uT` | float | `0.0048` | Upper bound of the theta range. |
 | `--lD` | float | `2` | Lower bound of the duration range. |
