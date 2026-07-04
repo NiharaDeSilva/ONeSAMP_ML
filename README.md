@@ -23,7 +23,7 @@ ONeSAMP_ML has two user-facing execution modes:
 
 | Mode | Purpose |
 | --- | --- |
-| `train` | Train selected machine learning models using fixed hyperparameters. If the requested `allPopStats` file does not exist, the program first generates it. |
+| `train` | Train selected machine learning models using fixed hyperparameters. |
 | `infer` | Load trained model files and estimate Ne for an input GENEPOP file. |
 
 The default mode is `train`.
