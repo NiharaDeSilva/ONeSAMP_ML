@@ -346,6 +346,7 @@ if __name__ == "__main__":
     def ensure_all_pop_stats(path):
         if os.path.exists(path):
             print(f"Using existing all population stats: {path}")
+            print("Simulation and summary statistics time: 0.00 seconds (reused existing file)")
             return 0.0
         simulation_start = time.time()
         results = generate_all_pop_results()

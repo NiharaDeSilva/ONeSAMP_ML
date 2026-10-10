@@ -4,6 +4,7 @@
 import numpy as np
 import pandas as pd
 import os
+from time import perf_counter
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
 from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
@@ -75,6 +76,7 @@ def bootstrap_uncertainty(
     General non-parametric bootstrap uncertainty estimator.
     for RF, XGBoost, Lasso, Ridge.
     """
+    start = perf_counter()
 
     # Sanitize inputs once up front
     X_train_clean = _ensure_numeric_2d(X_train, feature_names=feature_names)
@@ -114,6 +116,7 @@ def bootstrap_uncertainty(
         "lower_95ci": float(lower),
         "upper_95ci": float(upper),
         "model": model_name,
+        "bootstrap_seconds": perf_counter() - start,
     }
 
 
@@ -146,10 +149,10 @@ def evaluate_cv(model, X, y, cv_folds=5):
 
 
 #---------------------------------------Predict & Evaluate -------------------------------------#
-def evaluate_regression_model(cfg, model, X_test, y_test, model_dir):
+def evaluate_regression_model(cfg, model, X_test, y_test, model_dir, model_name):
     y_pred_test = model.predict(X_test)
     plot_dir = get_plot_dir(cfg)
-    calibration_curves(y_test, y_pred_test, "XGBoost", save_dir=plot_dir)
+    calibration_curves(y_test, y_pred_test, model_name, save_dir=plot_dir)
 
     mse = mean_squared_error(y_test, y_pred_test)
     rmse = np.sqrt(mse)
@@ -193,7 +196,9 @@ def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, 
     """
 
     # Metrics on held-out test set
-    metrics = evaluate_regression_model(cfg, model, X_test, y_test, model_dir)
+    evaluation_start = perf_counter()
+    metrics = evaluate_regression_model(cfg, model, X_test, y_test, model_dir, model_name)
+    evaluation_seconds = perf_counter() - evaluation_start
 
     # Nonparametric bootstrap prediction statistics
     boot_stats = bootstrap_uncertainty(
@@ -216,7 +221,11 @@ def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, 
 
     return {
         "metrics": metrics,
-        "bootstrap_stats": boot_stats
+        "bootstrap_stats": boot_stats,
+        "timings": {
+            "evaluation_seconds": evaluation_seconds,
+            "bootstrap_seconds": boot_stats["bootstrap_seconds"],
+        },
     }
 
 

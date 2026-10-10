@@ -19,33 +19,33 @@ def ensure_folder(path):
 def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     """
     Generate:
-        1. Pred vs True
+        1. Pred vs True (disabled)
         2. Residuals vs Pred
-        3. Binned calibration curve
+        3. Binned calibration curve (disabled)
         4. LOWESS smooth calibration curve
         5. Linear calibration fit + R²
-        6. Stratified calibration curves by validation fold (optional)
+        6. Stratified calibration curves by validation fold (disabled)
     """
 
     ensure_folder(save_dir)
     prefix = os.path.join(save_dir, f"{model_name}")
     true = np.array(true)
     pred = np.array(pred)
+    lims = [min(pred.min(), true.min()), max(pred.max(), true.max())]
 
     # ---------------------------------------------------------
     # (1) Predicted vs True
     # ---------------------------------------------------------
-    plt.figure()
-    plt.scatter(pred, true, s=8, alpha=0.4)
-    lims = [min(pred.min(), true.min()), max(pred.max(), true.max())]
-    plt.plot(lims, lims, "k--")
+    # plt.figure()
+    # plt.scatter(pred, true, s=8, alpha=0.4)
+    # plt.plot(lims, lims, "k--")
 
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-    plt.title(f"{model_name}: Predicted vs True")
-    plt.tight_layout()
-    plt.savefig(f"{prefix}_pred_vs_true.png", dpi=300)
-    plt.close()
+    # plt.xlabel("Predicted")
+    # plt.ylabel("True")
+    # plt.title(f"{model_name}: Predicted vs True")
+    # plt.tight_layout()
+    # plt.savefig(f"{prefix}_pred_vs_true.png", dpi=300)
+    # plt.close()
 
 
     # ---------------------------------------------------------
@@ -67,30 +67,30 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     # ---------------------------------------------------------
     # (3) Binned Calibration Curve
     # ---------------------------------------------------------
-    sorted_idx = np.argsort(pred)
-    pred_sorted = pred[sorted_idx]
-    true_sorted = true[sorted_idx]
+    # sorted_idx = np.argsort(pred)
+    # pred_sorted = pred[sorted_idx]
+    # true_sorted = true[sorted_idx]
 
-    bin_size = len(pred) // bins
-    bin_pred, bin_true = [], []
+    # bin_size = len(pred) // bins
+    # bin_pred, bin_true = [], []
 
-    for i in range(bins):
-        s = i * bin_size
-        e = (i + 1) * bin_size
-        bin_pred.append(np.mean(pred_sorted[s:e]))
-        bin_true.append(np.mean(true_sorted[s:e]))
+    # for i in range(bins):
+    #     s = i * bin_size
+    #     e = (i + 1) * bin_size
+    #     bin_pred.append(np.mean(pred_sorted[s:e]))
+    #     bin_true.append(np.mean(true_sorted[s:e]))
 
-    plt.figure()
-    plt.plot(bin_pred, bin_true, "o-", label="Binned Mean")
-    plt.plot([min(bin_pred), max(bin_pred)], [min(bin_pred), max(bin_pred)], "k--", label="Perfect Calibration")
+    # plt.figure()
+    # plt.plot(bin_pred, bin_true, "o-", label="Binned Mean")
+    # plt.plot([min(bin_pred), max(bin_pred)], [min(bin_pred), max(bin_pred)], "k--", label="Perfect Calibration")
 
-    plt.xlabel("Mean Predicted (bin)")
-    plt.ylabel("Mean True (bin)")
-    plt.title(f"{model_name}: Binned Calibration Curve")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f"{prefix}_binned.png", dpi=300)
-    plt.close()
+    # plt.xlabel("Mean Predicted (bin)")
+    # plt.ylabel("Mean True (bin)")
+    # plt.title(f"{model_name}: Binned Calibration Curve")
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.savefig(f"{prefix}_binned.png", dpi=300)
+    # plt.close()
 
 
     TITLE_SIZE = 22
@@ -154,27 +154,27 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     # (6) Stratification by Fold (optional)
     # folds must be an array same length as true/pred
     # ---------------------------------------------------------
-    if folds is not None:
-        unique_folds = np.unique(folds)
+    # if folds is not None:
+    #     unique_folds = np.unique(folds)
 
-        for f in unique_folds:
-            idx = (folds == f)
-            true_f = true[idx]
-            pred_f = pred[idx]
+    #     for f in unique_folds:
+    #         idx = (folds == f)
+    #         true_f = true[idx]
+    #         pred_f = pred[idx]
 
-            # LOWESS per fold
-            fold_lowess = lowess(true_f, pred_f, frac=0.4, return_sorted=True)
+    #         # LOWESS per fold
+    #         fold_lowess = lowess(true_f, pred_f, frac=0.4, return_sorted=True)
 
-            plt.figure()
-            plt.scatter(pred_f, true_f, s=5, alpha=0.3)
-            plt.plot(fold_lowess[:, 0], fold_lowess[:, 1], "r-", label="LOWESS")
-            plt.plot(lims, lims, "k--")
+    #         plt.figure()
+    #         plt.scatter(pred_f, true_f, s=5, alpha=0.3)
+    #         plt.plot(fold_lowess[:, 0], fold_lowess[:, 1], "r-", label="LOWESS")
+    #         plt.plot(lims, lims, "k--")
 
-            plt.xlabel("Predicted")
-            plt.ylabel("True")
-            plt.title(f"{model_name}: Fold {f} Calibration Curve")
-            plt.tight_layout()
-            plt.savefig(f"{prefix}_fold_{f}.png", dpi=300)
-            plt.close()
+    #         plt.xlabel("Predicted")
+    #         plt.ylabel("True")
+    #         plt.title(f"{model_name}: Fold {f} Calibration Curve")
+    #         plt.tight_layout()
+    #         plt.savefig(f"{prefix}_fold_{f}.png", dpi=300)
+    #         plt.close()
 
     print(f"[Saved] Calibration plots for {model_name} → {save_dir}/")

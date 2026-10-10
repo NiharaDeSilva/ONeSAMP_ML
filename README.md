@@ -283,3 +283,18 @@ For questions, issues, or bug reports, please contact suhashidesilva@ufl.edu or 
 ## License
 
 ONeSAMP_ML is released under the GNU General Public License v3.0. See `LICENSE` for details.
+
+### Runtime reporting
+
+Training reports simulation and summary-statistics time, cross-validation time,
+and per-model times for OOF calibration (including fold fits and plots), final
+model fitting, held-out evaluation and calibration plots, and bootstrap uncertainty.
+The per-model breakdown appears in the console, `training_summary.txt`, and the
+`timings` fields in `training_metrics.json`. The overall model workflow timer
+includes cross-validation and preparation; total training time adds simulation.
+Simulation time is zero when existing population statistics are reused.
+
+Bootstrap inference prints bootstrap time for each model as well as overall
+inference time. Point-only inference prints overall inference time and skips
+bootstrap. Model stages run concurrently, so adding their per-model times does
+not give the overall elapsed wall time.

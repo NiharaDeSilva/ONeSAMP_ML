@@ -100,10 +100,7 @@ def normalize_model_selection(model_selection):
     return selected_models
 
 
-def get_plot_dir(cfg, run_dir=None, model_name=None):
-    if run_dir is not None and model_name is not None:
-        return get_model_dir(run_dir, model_name)
-
+def get_plot_dir(cfg):
     loci, sampleSize = set_size(cfg)
     return ensure_dir(os.path.join(PLOT_DIR, f"{sampleSize}x{loci}"))
 
@@ -115,7 +112,7 @@ def get_plot_dir(cfg, run_dir=None, model_name=None):
 def get_oof_predictions(cfg, model_constructor, X_train, y_train, model_name, save_dir):
     """
     Performs 5-fold CV on the training set and saves calibration outputs
-    into a model-specific directory.
+    into the configured plots directory.
     """
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
@@ -235,14 +232,20 @@ def get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=None):
     return results
 
 
-def train_model(cfg, model_name, X_train, y_train, model_path, plot_dir):
+def train_model(cfg, model_name, X_train, y_train, model_path, plot_dir, timings=None):
+    if timings is None:
+        timings = {}
     model_builders = get_model_builders()
     model_constructor = model_builders[model_name]
 
+    start = time.perf_counter()
     get_oof_predictions(cfg, model_constructor, X_train, y_train, model_name, save_dir=plot_dir)
+    timings["calibration_seconds"] = time.perf_counter() - start
 
     model = model_constructor()
+    start = time.perf_counter()
     model.fit(X_train, np.asarray(y_train).ravel())
+    timings["training_seconds"] = time.perf_counter() - start
     joblib.dump(model, model_path)
     return model
 
@@ -273,6 +276,7 @@ def _run_single_model_task(task):
         "feature_scores": None,
         "elapsed_seconds": None,
         "log_text": "",
+        "timings": {},
     }
     start = time.time()
 
@@ -286,7 +290,8 @@ def _run_single_model_task(task):
                 X_train=X_train,
                 y_train=y_train,
                 model_path=model_path,
-                plot_dir=model_dir,
+                plot_dir=get_plot_dir(cfg),
+                timings=result["timings"],
             )
 
             eval_out = predict_and_evaluate_model(
@@ -309,6 +314,7 @@ def _run_single_model_task(task):
             if eval_out is not None:
                 result["metrics"] = eval_out.get("metrics")
                 result["feature_scores"] = eval_out.get("feature_scores")
+                result["timings"].update(eval_out["timings"])
 
     except Exception:
         result["status"] = "failed"
@@ -332,6 +338,7 @@ def write_combined_training_report(
     ordered_model_names,
     model_training_elapsed_seconds=None,
     simulation_elapsed_seconds=0.0,
+    cross_validation_seconds=0.0,
 ):
     summary_txt = os.path.join(run_dir, "training_summary.txt")
     summary_json = os.path.join(run_dir, "training_metrics.json")
@@ -344,6 +351,7 @@ def write_combined_training_report(
         "simulation_summary_stats_time_seconds": simulation_elapsed_seconds,
         "model_training_time_seconds": model_training_elapsed_seconds,
         "total_training_time_seconds": total_elapsed_seconds,
+        "cross_validation_time_seconds": cross_validation_seconds,
     }
 
     with open(summary_txt, "w") as f:
@@ -351,8 +359,9 @@ def write_combined_training_report(
         f.write("=" * 80 + "\n\n")
         f.write(f"Selected models: {', '.join(ordered_model_names)}\n")
         f.write(f"Simulation and summary statistics time: {simulation_elapsed_seconds:.2f} seconds\n")
+        f.write(f"Cross-validation time: {cross_validation_seconds:.2f} seconds\n")
         if model_training_elapsed_seconds is not None:
-            f.write(f"Model training time for selected models: {model_training_elapsed_seconds:.2f} seconds\n")
+            f.write(f"Model workflow wall time (including CV): {model_training_elapsed_seconds:.2f} seconds\n")
         if total_elapsed_seconds is not None:
             f.write(
                 "Total training time "
@@ -360,6 +369,7 @@ def write_combined_training_report(
                 f"{total_elapsed_seconds:.2f} seconds\n"
             )
         f.write("\n")
+        f.write("Per-model stages overlap across workers; their sums are not overall wall time.\n\n")
 
         for model_name in ordered_model_names:
             if model_name not in results:
@@ -373,6 +383,7 @@ def write_combined_training_report(
                 "elapsed_seconds": r["elapsed_seconds"],
                 "model_path": r["model_path"],
                 "model_dir": r["model_dir"],
+                "timings": r["timings"],
             }
 
             f.write(f"{model_name}\n")
@@ -380,6 +391,16 @@ def write_combined_training_report(
             f.write(f"Status: {r['status']}\n")
             if r["elapsed_seconds"] is not None:
                 f.write(f"Model time: {r['elapsed_seconds']:.2f} seconds\n")
+            for key, label in (
+                ("calibration_seconds", "OOF calibration (fold fits and plots)"),
+                ("training_seconds", "Final model fitting"),
+                ("evaluation_seconds", "Held-out evaluation and calibration plots"),
+                ("bootstrap_seconds", "Bootstrap uncertainty"),
+            ):
+                if key in r["timings"]:
+                    line = f"{label}: {r['timings'][key]:.2f} seconds"
+                    f.write(line + "\n")
+                    print(f"{model_name} - {line}")
 
             if r["metrics"] is not None:
                 m = r["metrics"]
@@ -407,6 +428,7 @@ def write_combined_training_report(
 # -----------------------------------
 
 def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, simulation_elapsed_seconds=0.0):
+    selected_training_start = time.perf_counter()
     selected_model_names = normalize_model_selection(model_selection)
     feature_cols = [
         'Gametic_equilibrium',
@@ -430,7 +452,10 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
         X, y, test_size=0.3, random_state=40
     )
 
+    cv_start = time.perf_counter()
     cv_results = get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=selected_model_names)
+    cross_validation_seconds = time.perf_counter() - cv_start
+    print(f"Cross-validation time: {cross_validation_seconds:.2f} seconds")
     with open(os.path.join(run_dir, "cv_results.json"), "w") as f:
         json.dump(cv_results, f, indent=2)
 
@@ -493,12 +518,10 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
         task["model_dir"] = model_dir
         task["model_path"] = os.path.join(model_dir, get_model_filename(task["model_name"]))
 
-    selected_training_start = time.time()
-
     # --- Single model path ---
     if len(selected_tasks) == 1:
         result = _run_single_model_task(selected_tasks[0])
-        model_training_elapsed = time.time() - selected_training_start
+        model_training_elapsed = time.perf_counter() - selected_training_start
         results = {result["model_name"]: result}
         write_combined_training_report(
             run_dir,
@@ -506,6 +529,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
             selected_model_names,
             model_training_elapsed,
             simulation_elapsed_seconds,
+            cross_validation_seconds,
         )
         model = joblib.load(result["model_path"])
         return model
@@ -527,11 +551,12 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
             result = future.result()
             results[result["model_name"]] = result
 
-    model_training_elapsed = time.time() - selected_training_start
+    model_training_elapsed = time.perf_counter() - selected_training_start
     write_combined_training_report(
         run_dir,
         results,
         selected_model_names,
         model_training_elapsed,
         simulation_elapsed_seconds,
+        cross_validation_seconds,
     )

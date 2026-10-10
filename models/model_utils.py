@@ -259,6 +259,7 @@ def run_all_models(cfg, Z, train_path, model_selection=None, point_only=False):
                     print(f"{pred['model']}: point_estimate={pred['point_estimate']:.4f}")
                 else:
                     print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+                    print(f"{pred['model']} - Bootstrap uncertainty: {pred['bootstrap_seconds']:.2f} seconds")
             except Exception as exc:
                 print(f"[Skip] {model_name} failed: {exc}")
 
