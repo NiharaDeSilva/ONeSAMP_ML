@@ -6,10 +6,8 @@ import joblib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import OUTPUT_PATH
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
-output_path = OUTPUT_PATH
 MODEL_ORDER = ["RandomForest", "XGBoost", "Lasso", "Ridge"]
 MODEL_ALIASES = {
     "rf": "RandomForest",
@@ -60,19 +58,6 @@ def load_training_data(train_path):
 
 
 
-# Predict again using new Z
-#Z_scaled = scaler.transform(Z)
-#xgb_prediction = xgb_model.predict(Z_scaled)
-
-#train_path = os.path.join(output_path,f'allPopStats_genePop{sampleSize}x{loci}')
-#scaler_path = os.path.join(output_path, f'scaler_{sampleSize}x{loci}.joblib')
-#rf_path = os.path.join(output_path, f"rf_model_{sampleSize}x{loci}.joblib")
-#xgb_path = os.path.join(output_path, f"xgb_model_{sampleSize}x{loci}.joblib")
-#lasso_path = os.path.join(output_path, f"lasso_model_{sampleSize}x{loci}.joblib")
-#ridge_path = os.path.join(output_path, f"ridge_model_{sampleSize}x{loci}.joblib")
-
-
-
 def load_scaler(scaler_path):
     if os.path.exists(scaler_path):
         return joblib.load(scaler_path)
@@ -87,8 +72,6 @@ def load_rf_model(rf_path, Z, train_path):
     rf_model = joblib.load(rf_path)
 
     X_train, y_train = load_training_data(train_path)
-    # X_train_s = scaler.transform(X_train)
-    # Z_scaled = scaler.transform(Z.values)
 
     rf_prediction = bootstrap_uncertainty(
         model=rf_model,
@@ -106,8 +89,6 @@ def load_xgb_model(xgb_path, Z, train_path):
         raise FileNotFoundError(f"Model file {xgb_path} does not exist.")
 
     X_train, y_train = load_training_data(train_path)
-    # X_train_s = scaler.transform(X_train)
-    # Z_scaled = scaler.transform(Z.values)
 
     xgb_model = joblib.load(xgb_path)
     xgb_prediction = bootstrap_uncertainty(

@@ -24,7 +24,6 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
         3. Binned calibration curve (disabled)
         4. LOWESS smooth calibration curve
         5. Linear calibration fit + R²
-        6. Stratified calibration curves by validation fold (disabled)
     """
 
     ensure_folder(save_dir)
@@ -149,32 +148,5 @@ def calibration_curves(true, pred, model_name, save_dir, bins=10, folds=None):
     plt.savefig(f"{prefix}_linear_fit.png", dpi=300)
     plt.close()
 
-
-    # ---------------------------------------------------------
-    # (6) Stratification by Fold (optional)
-    # folds must be an array same length as true/pred
-    # ---------------------------------------------------------
-    # if folds is not None:
-    #     unique_folds = np.unique(folds)
-
-    #     for f in unique_folds:
-    #         idx = (folds == f)
-    #         true_f = true[idx]
-    #         pred_f = pred[idx]
-
-    #         # LOWESS per fold
-    #         fold_lowess = lowess(true_f, pred_f, frac=0.4, return_sorted=True)
-
-    #         plt.figure()
-    #         plt.scatter(pred_f, true_f, s=5, alpha=0.3)
-    #         plt.plot(fold_lowess[:, 0], fold_lowess[:, 1], "r-", label="LOWESS")
-    #         plt.plot(lims, lims, "k--")
-
-    #         plt.xlabel("Predicted")
-    #         plt.ylabel("True")
-    #         plt.title(f"{model_name}: Fold {f} Calibration Curve")
-    #         plt.tight_layout()
-    #         plt.savefig(f"{prefix}_fold_{f}.png", dpi=300)
-    #         plt.close()
 
     print(f"[Saved] Calibration plots for {model_name} → {save_dir}/")

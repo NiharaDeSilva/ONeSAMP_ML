@@ -5,14 +5,12 @@ import numpy as np
 import pandas as pd
 import os
 from time import perf_counter
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, make_scorer
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.utils import resample
 from models.calibration import calibration_curves
 import copy
-from config import OUTPUT_PATH, PLOT_DIR
+from config import PLOT_DIR
 
-output_path = OUTPUT_PATH
 feature_names = ['Gametic_equilibrium', 'Mlocus_homozegosity_mean', 'Mlocus_homozegosity_variance', 'Fix_index', 'Emean_exhyt']
 
 def set_size(cfg):
@@ -134,26 +132,12 @@ def get_coeficients_reg_models(model_coef, feature_names):
         print(f"{name}: {coef:.4f}")
 
 
-#--------------------------------------- Cross Validation ------------------------------------#
-
-def evaluate_cv(model, X, y, cv_folds=5):
-    r2_scores = cross_val_score(model, X, y, cv=cv_folds, scoring='r2')
-    rmse_scores = -cross_val_score(model, X, y, cv=cv_folds,
-        scoring=make_scorer(lambda yt, yp: np.sqrt(mean_squared_error(yt, yp)), greater_is_better=False))
-    mae_scores = -cross_val_score(model, X, y, cv=cv_folds,
-        scoring=make_scorer(mean_absolute_error, greater_is_better=False))
-
-    print(f"{model.__class__.__name__} ({cv_folds}-Fold CV) => R²: {r2_scores.mean():.4f} ± {r2_scores.std():.4f}, "
-      f"RMSE: {rmse_scores.mean():.4f} ± {rmse_scores.std():.4f}, "
-      f"MAE: {mae_scores.mean():.4f} ± {mae_scores.std():.4f}")
-
-
 #---------------------------------------Predict & Evaluate -------------------------------------#
-def evaluate_regression_model(cfg, model, X_test, y_test, model_dir, model_name):
+def evaluate_regression_model(cfg, model, X_test, y_test, model_dir, model_name, timings=None):
+    if timings is None:
+        timings = {}
+    start = perf_counter()
     y_pred_test = model.predict(X_test)
-    plot_dir = get_plot_dir(cfg)
-    calibration_curves(y_test, y_pred_test, model_name, save_dir=plot_dir)
-
     mse = mean_squared_error(y_test, y_pred_test)
     rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_test, y_pred_test)
@@ -165,6 +149,11 @@ def evaluate_regression_model(cfg, model, X_test, y_test, model_dir, model_name)
         "mae": mae,
         "r2": r2
     }
+    timings["evaluation_seconds"] = perf_counter() - start
+    start = perf_counter()
+    calibration_curves(y_test, y_pred_test, model_name, save_dir=get_plot_dir(cfg))
+    timings["calibration_seconds"] = perf_counter() - start
+
     os.makedirs(model_dir, exist_ok=True)
     with open(os.path.join(model_dir, "metrics.txt"), "w") as f:
         f.write(
@@ -196,9 +185,8 @@ def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, 
     """
 
     # Metrics on held-out test set
-    evaluation_start = perf_counter()
-    metrics = evaluate_regression_model(cfg, model, X_test, y_test, model_dir, model_name)
-    evaluation_seconds = perf_counter() - evaluation_start
+    timings = {}
+    metrics = evaluate_regression_model(cfg, model, X_test, y_test, model_dir, model_name, timings)
 
     # Nonparametric bootstrap prediction statistics
     boot_stats = bootstrap_uncertainty(
@@ -210,6 +198,7 @@ def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, 
         model_name=model_name
     )
 
+    timings["bootstrap_seconds"] = boot_stats["bootstrap_seconds"]
     print_stats_inline(f"{model_name} Prediction Stats", boot_stats)
 
     # Interpretation
@@ -222,74 +211,5 @@ def predict_and_evaluate_model(cfg, model, X_train, y_train, X_test, y_test, Z, 
     return {
         "metrics": metrics,
         "bootstrap_stats": boot_stats,
-        "timings": {
-            "evaluation_seconds": evaluation_seconds,
-            "bootstrap_seconds": boot_stats["bootstrap_seconds"],
-        },
+        "timings": timings,
     }
-
-
-
-
-
-
-# -----------------------------------
-# XGBoost
-# -----------------------------------
-
-# def predict_xgboost(model, Z_scaled, model_lower, model_upper):
-#
-#     booster = model.get_booster()
-#     num_rounds = booster.num_boosted_rounds()
-#     tree_preds = np.array([
-#         model.predict(Z_scaled, iteration_range=(i, i + 1))
-#         for i in range(num_rounds)
-#     ]).reshape(-1)
-#
-#     mean_pred = np.mean(tree_preds)
-#     median_pred = np.median(tree_preds)
-#
-#     if model_lower is not None and model_upper is not None:
-#         lower = model_lower.predict(Z_scaled)
-#         upper = model_upper.predict(Z_scaled)
-#
-#         # Enforce order (in case quantiles flip)
-#         lower, upper = np.minimum(lower, upper), np.maximum(lower, upper)
-#
-#         # Clip mean and median to stay within the bounds
-#         mean_pred = np.clip(mean_pred, lower, upper)
-#         median_pred = np.clip(median_pred, lower, upper)
-#
-#         predictions = {
-#             "mean": mean_pred.item(),
-#             "median": median_pred.item(),
-#             "lower_95ci": lower.item(),
-#             "upper_95ci": upper.item()
-#         }
-#
-#     return predictions
-
-
-
-
-
-
-# # ---- Bootstrap-Based Prediction Statistics ---- #
-# def predict_with_stats(model, X_train, y_train, new_sample, n_bootstrap=1000, alpha=0.05):
-#     predictions = []
-#     for _ in range(n_bootstrap):
-#         X_boot, y_boot = resample(X_train, y_train)
-#         model.fit(X_boot, y_boot)
-#         pred = model.predict(new_sample)[0]
-#         predictions.append(pred)
-#     predictions = np.array(predictions)
-#     lower = np.percentile(predictions, 100 * (alpha / 2))
-#     upper = np.percentile(predictions, 100 * (1 - alpha / 2))
-#     return {
-#         'mean': np.mean(predictions),
-#         'median': np.median(predictions),
-#         'min': np.min(predictions),
-#         'max': np.max(predictions),
-#         'lower_95ci': lower,
-#         'upper_95ci': upper
-#     }

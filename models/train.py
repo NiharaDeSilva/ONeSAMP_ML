@@ -4,14 +4,11 @@ import os
 import time
 import json
 import io
-import uuid
 import joblib
 import numpy as np
 import traceback
 from contextlib import redirect_stdout, redirect_stderr
 
-from datetime import datetime
-from contextlib import redirect_stdout, redirect_stderr
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import get_context
 
@@ -24,8 +21,7 @@ from sklearn.pipeline import Pipeline
 from xgboost import XGBRegressor
 
 from models.predict import predict_and_evaluate_model
-from models.calibration import calibration_curves
-from config import OUTPUT_PATH, PLOT_DIR
+from config import OUTPUT_PATH
 
 output_path = OUTPUT_PATH
 MODEL_ORDER = ["RandomForest", "XGBoost", "Lasso", "Ridge"]
@@ -98,49 +94,6 @@ def normalize_model_selection(model_selection):
             selected_models.append(model_name)
 
     return selected_models
-
-
-def get_plot_dir(cfg):
-    loci, sampleSize = set_size(cfg)
-    return ensure_dir(os.path.join(PLOT_DIR, f"{sampleSize}x{loci}"))
-
-
-# -----------------------------------
-# OOF calibration data
-# -----------------------------------
-
-def get_oof_predictions(cfg, model_constructor, X_train, y_train, model_name, save_dir):
-    """
-    Performs 5-fold CV on the training set and saves calibration outputs
-    into the configured plots directory.
-    """
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
-
-    y_train = np.asarray(y_train).ravel()
-    oof_pred = np.zeros(len(y_train))
-    oof_true = y_train.copy()
-    oof_folds = np.zeros(len(y_train), dtype=int)
-
-    for fold_id, (train_idx, val_idx) in enumerate(kf.split(X_train)):
-        X_tr, X_val = X_train[train_idx], X_train[val_idx]
-        y_tr = y_train[train_idx]
-
-        model = model_constructor()
-        model.fit(X_tr, y_tr)
-        preds = model.predict(X_val)
-
-        oof_pred[val_idx] = preds
-        oof_folds[val_idx] = fold_id
-
-    calibration_curves(
-        true=oof_true,
-        pred=oof_pred,
-        model_name=f"{model_name}_OOF",
-        save_dir=save_dir,
-        folds=oof_folds,
-    )
-
-    return oof_pred, oof_true, oof_folds
 
 
 # -----------------------------------
@@ -232,15 +185,11 @@ def get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=None):
     return results
 
 
-def train_model(cfg, model_name, X_train, y_train, model_path, plot_dir, timings=None):
+def train_model(model_name, X_train, y_train, model_path, timings=None):
     if timings is None:
         timings = {}
     model_builders = get_model_builders()
     model_constructor = model_builders[model_name]
-
-    start = time.perf_counter()
-    get_oof_predictions(cfg, model_constructor, X_train, y_train, model_name, save_dir=plot_dir)
-    timings["calibration_seconds"] = time.perf_counter() - start
 
     model = model_constructor()
     start = time.perf_counter()
@@ -285,12 +234,10 @@ def _run_single_model_task(task):
             print(f"\n------------- {model_name.upper()} -------------")
 
             model = train_model(
-                cfg=cfg,
                 model_name=model_name,
                 X_train=X_train,
                 y_train=y_train,
                 model_path=model_path,
-                plot_dir=get_plot_dir(cfg),
                 timings=result["timings"],
             )
 
@@ -392,9 +339,9 @@ def write_combined_training_report(
             if r["elapsed_seconds"] is not None:
                 f.write(f"Model time: {r['elapsed_seconds']:.2f} seconds\n")
             for key, label in (
-                ("calibration_seconds", "OOF calibration (fold fits and plots)"),
+                ("calibration_seconds", "Test calibration plots"),
                 ("training_seconds", "Final model fitting"),
-                ("evaluation_seconds", "Held-out evaluation and calibration plots"),
+                ("evaluation_seconds", "Held-out prediction and metrics"),
                 ("bootstrap_seconds", "Bootstrap uncertainty"),
             ):
                 if key in r["timings"]:

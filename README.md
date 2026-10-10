@@ -247,7 +247,7 @@ Common outputs include:
 - `training_summary.txt`: combined training report.
 - `training_metrics.json`: training metrics in JSON format.
 - `cv_results.json`: cross-validation performance summary for trained models.
-- Calibration plots under `PLOT_DIR`.
+- Only held-out test plots (residuals, LOWESS, and linear fit) under `PLOT_DIR/<sampleSize>x<numLoci>/`, named by model. No training-data or OOF plots are generated.
 
 Inference prints prediction summaries to standard output, including median prediction and 95% confidence interval for each selected model.
 
@@ -287,8 +287,8 @@ ONeSAMP_ML is released under the GNU General Public License v3.0. See `LICENSE` 
 ### Runtime reporting
 
 Training reports simulation and summary-statistics time, cross-validation time,
-and per-model times for OOF calibration (including fold fits and plots), final
-model fitting, held-out evaluation and calibration plots, and bootstrap uncertainty.
+and per-model times for test calibration plots, final
+model fitting, held-out predictions and metrics, and bootstrap uncertainty.
 The per-model breakdown appears in the console, `training_summary.txt`, and the
 `timings` fields in `training_metrics.json`. The overall model workflow timer
 includes cross-validation and preparation; total training time adds simulation.
