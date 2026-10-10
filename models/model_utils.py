@@ -3,9 +3,9 @@
 import os
 import pandas as pd
 import joblib
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import get_context
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import OUTPUT_PATH
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from models.predict import bootstrap_uncertainty
 
@@ -48,9 +48,14 @@ def load_training_data(train_path):
         first = f.readline()
     sep = "\t" if "\t" in first else ","
     df = pd.read_csv(train_path, sep=sep, header=None)
+    df = df[df.iloc[:, 0].astype(float) > 0]
 
-    y_train = df.iloc[:, 0].astype(float).values
-    X_train = df.iloc[:, 1:6].astype(float).values
+    y = df.iloc[:, 0].astype(float).values
+    X = df.iloc[:, 1:6].astype(float).values
+    # Match the training rows selected in run_model_training.
+    X_train, _, y_train, _ = train_test_split(
+        X, y, test_size=0.3, random_state=40
+    )
     return X_train, y_train
 
 
@@ -169,6 +174,12 @@ def _run_inference_task(task):
     scaler_path = task.get("scaler_path")
     Z = task["Z"]
 
+    if task.get("point_only", False):
+        model = joblib.load(model_path)
+        if model_name in ("Lasso", "Ridge"):
+            Z = load_scaler(scaler_path).transform(Z.values)
+        return {"model": model_name, "point_estimate": float(model.predict(Z)[0])}
+
     if model_name == "RandomForest":
         return load_rf_model(model_path, Z, train_path)
     elif model_name == "XGBoost":
@@ -181,7 +192,7 @@ def _run_inference_task(task):
         raise ValueError(f"Unknown inference model: {model_name}")
 
 
-def run_all_models(cfg, Z, train_path, model_selection=None):
+def run_all_models(cfg, Z, train_path, model_selection=None, point_only=False):
     selected_model_names = normalize_model_selection(model_selection)
     loci, sampleSize = set_size(cfg)
     folder_path = os.path.join(OUTPUT_PATH, f"{sampleSize}x{loci}")
@@ -224,6 +235,7 @@ def run_all_models(cfg, Z, train_path, model_selection=None):
 
     for model_name in selected_model_names:
         task = task_map[model_name]
+        task["point_only"] = point_only
         if os.path.exists(task["model_path"]):
             tasks.append(task)
         else:
@@ -233,9 +245,9 @@ def run_all_models(cfg, Z, train_path, model_selection=None):
         print("No models available for inference.")
         return results
 
+    # Run one model per thread, limited by the available CPUs.
     max_workers = min(len(tasks), os.cpu_count() or 1)
-    ctx = get_context("spawn")
-    with ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_run_inference_task, task): task for task in tasks}
         for future in as_completed(futures):
             task = futures[future]
@@ -243,7 +255,10 @@ def run_all_models(cfg, Z, train_path, model_selection=None):
             try:
                 pred = future.result()
                 results.append(pred)
-                print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
+                if point_only:
+                    print(f"{pred['model']}: point_estimate={pred['point_estimate']:.4f}")
+                else:
+                    print(f"{pred['model']}: median={pred['median']:.4f}  95%CI=({pred['lower_95ci']:.4f},{pred['upper_95ci']:.4f})")
             except Exception as exc:
                 print(f"[Skip] {model_name} failed: {exc}")
 

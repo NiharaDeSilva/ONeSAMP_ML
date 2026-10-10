@@ -19,12 +19,13 @@ It is strongly recommended that users read the accompanying manuscript before ap
 
 ## Overview
 
-ONeSAMP_ML has two user-facing execution modes:
+ONeSAMP_ML has three user-facing execution modes:
 
 | Mode | Purpose |
 | --- | --- |
 | `train` | Train selected machine learning models using fixed hyperparameters. If the requested `allPopStats` file does not exist, the program first generates it. |
-| `infer` | Load trained model files and estimate Ne for an input GENEPOP file. |
+| `infer` | Estimate Ne with bootstrap uncertainty, refitting models on resampled training rows. |
+| `infer-point` | Predict Ne directly with saved models, without bootstrap or reference training data. |
 
 The default mode is `train`.
 
@@ -98,6 +99,14 @@ Run inference with all available trained models:
 python main.py --mode infer --o data_100/genePop100x1000_1 --allpopstats /path/to/allPopStats_genePop100x1000_1
 ```
 
+Run point-only inference (no `--allpopstats` needed):
+
+```bash
+python main.py --mode infer-point --o data_100/genePop100x1000_1 --models all
+```
+
+This prints each saved model's `point_estimate`. Lasso and Ridge also require the saved scaler.
+
 Train or infer with selected models only:
 
 ```bash
@@ -107,7 +116,7 @@ python main.py --mode infer --models ls,rd --o data_100/genePop100x1000_1 --allp
 
 ## Model Selection
 
-Use `--models` with comma-separated model codes in `train` or `infer` mode.
+Use `--models` with comma-separated model codes in `train`, `infer`, or `infer-point` mode.
 
 | Code | Model |
 | --- | --- |
@@ -137,10 +146,10 @@ python main.py [options]
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `--mode` | string | `train` | Execution mode. Choices: `train`, `infer`. |
+| `--mode` | string | `train` | Execution mode. Choices: `train`, `infer`, `infer-point`. |
 | `--o` | string | `data_100/genePop100x1000_1` | Input GENEPOP file. |
-| `--allpopstats` | string | auto-generated path under `OUTPUT_PATH` | Path to an existing or output `allPopStats` file. In `train` mode, the file is generated if missing. In `infer` mode, it must already exist. |
-| `--models` | string | `all` | Comma-separated model codes for `train` or `infer`: `rf`, `xb`, `ls`, `rd`, or `all`. |
+| `--allpopstats` | string | auto-generated path under `OUTPUT_PATH` | Path to an existing or output `allPopStats` file. In `train` mode, the file is generated if missing. In `infer` mode, it must already exist. Unused in `infer-point` mode. |
+| `--models` | string | `all` | Comma-separated model codes for all modes: `rf`, `xb`, `ls`, `rd`, or `all`. |
 | `--s` | integer | `20000` | Number of ONeSAMP trials used when generating a missing `allPopStats` file during training. |
 | `--m` | float | `0.05` | Minimum allele frequency. |
 | `--r` | float | `0.000000012` | Mutation rate. |

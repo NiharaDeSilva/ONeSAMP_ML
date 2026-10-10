@@ -84,8 +84,8 @@ parser.add_argument("--l", type=float, help="Missing data for loci")
 parser.add_argument("--o", type=str, help="The File Name")
 parser.add_argument("--t", type=int, help="Repeat times")
 parser.add_argument("--n", type=bool, help="whether to filter the monomorphic loci", default=False)
-parser.add_argument("--mode", type=str, choices=["train", "infer"], default="train",
-                    help="Execution mode: train models or run inference")
+parser.add_argument("--mode", type=str, choices=["train", "infer", "infer-point"], default="train",
+                    help="train: fit models; infer: bootstrap estimates; infer-point: saved-model point predictions only")
 parser.add_argument("--allpopstats", type=str,
                     help="Path to an existing allPopStats file for train/infer modes")
 parser.add_argument("--models", type=str, default="all",
@@ -360,7 +360,7 @@ if __name__ == "__main__":
         if not os.path.exists(allPopStats_path):
             print(f"ERROR: Inference mode requires existing allPopStats at {allPopStats_path}")
             sys.exit(1)
-    else:
+    elif args.mode != "infer-point":
         print(f"ERROR: Unknown mode '{args.mode}'")
         sys.exit(1)
 
@@ -377,10 +377,13 @@ if __name__ == "__main__":
         )
         sys.exit(0)
 
-    if args.mode == "infer":
+    if args.mode in ("infer", "infer-point"):
         train_path = allPopStats_path
         inference_start = time.time()
-        model_utils.run_all_models(cfg, inputStatsList, train_path, selected_models)
+        model_utils.run_all_models(
+            cfg, inputStatsList, train_path, selected_models,
+            point_only=args.mode == "infer-point",
+        )
         inference_elapsed = time.time() - inference_start
         print(f"Inference time: {inference_elapsed:.2f} seconds")
         sys.exit(0)

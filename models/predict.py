@@ -68,7 +68,8 @@ def bootstrap_uncertainty(
     X_point,
     n_bootstrap=500,
     alpha=0.05,
-    model_name=""
+    model_name="",
+    random_state=42,
 ):
     """
     General non-parametric bootstrap uncertainty estimator.
@@ -87,9 +88,11 @@ def bootstrap_uncertainty(
         )
 
     preds = []
+    # Each call has its own reproducible sequence, including when run in threads.
+    rng = np.random.RandomState(random_state)
 
     for _ in range(n_bootstrap):
-        X_boot, y_boot = resample(X_train_clean, y_train_clean)
+        X_boot, y_boot = resample(X_train_clean, y_train_clean, random_state=rng)
 
         boot_model = copy.deepcopy(model)
         boot_model.fit(X_boot, y_boot)
