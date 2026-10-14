@@ -244,12 +244,16 @@ Common outputs include:
 - `XGBoost/xgb_model.joblib`: trained XGBoost model.
 - `Lasso/lasso_model.joblib`: trained Lasso model.
 - `Ridge/ridge_model.joblib`: trained Ridge model.
-- `training_summary.txt`: combined training report.
+- `<OUTPUT>/genePop<size>x<loci>_<i>`: combined training report, named after the input file without its extension and saved directly in `OUTPUT`.
 - `training_metrics.json`: training metrics in JSON format.
-- `cv_results.json`: cross-validation performance summary for trained models.
+- `cv_results.txt`: cross-validation performance summary for trained models, one line per model with RMSE, MAE, and R² as mean ± standard deviation (four decimal places).
 - Only held-out test plots (residuals, LOWESS, and linear fit) under `PLOT_DIR/<sampleSize>x<numLoci>/`, named by model. No training-data or OOF plots are generated.
 
+Training saves model artifacts in the model directory and the combined report directly in `OUTPUT`, without routine console output. The batch script discards training stdout, so it does not create a per-input `genePop<size>x<loci>_<i>` console-output file. Per-model metrics and logs are included in the combined report; the separate `metrics.txt` and `train.log` files are removed after the combined reports are successfully saved.
+
 Inference prints prediction summaries to standard output, including median prediction and 95% confidence interval for each selected model.
+
+When running `test_100.sh` with `MODE="train"`, console output is discarded instead of creating a per-input `genePop<size>x<loci>_<i>` output file. Training reports and memory reports are still saved. Inference modes continue saving per-input output files.
 
 ## Repository Structure
 
@@ -289,7 +293,7 @@ ONeSAMP_ML is released under the GNU General Public License v3.0. See `LICENSE` 
 Training reports simulation and summary-statistics time, cross-validation time,
 and per-model times for test calibration plots, final
 model fitting, held-out predictions and metrics, and bootstrap uncertainty.
-The per-model breakdown appears in the console, `training_summary.txt`, and the
+The per-model breakdown appears in `<OUTPUT>/genePop<size>x<loci>_<i>` and the
 `timings` fields in `training_metrics.json`. The overall model workflow timer
 includes cross-validation and preparation; total training time adds simulation.
 Simulation time is zero when existing population statistics are reused.

@@ -173,7 +173,7 @@ fileName = "data_100/genePop100x1000_1"
 if (args.o):
     fileName = str(args.o)
 else:
-    print("WARNING:main: No filename provided.  Using oneSampIn")
+    print("WARNING:main: No filename provided.  Using oneSampIn", file=sys.stderr)
 
 if (DEBUG):
     print("Start calculation of statistics for input population")
@@ -192,7 +192,7 @@ inputFileStatistics.readData(fileName)
 inputFileStatistics.filterIndividuals(indivMissing)
 inputFileStatistics.filterLoci(lociMissing)
 if (args.n):
-    inputFileStatistics.filterMonomorphicLoci()
+    inputFileStatistics.filterMonomorphicLoci(verbose=args.mode != "train")
 
 #inputFileStatistics.test_stat1()
 inputFileStatistics.test_stat1_new()
@@ -205,6 +205,7 @@ numLoci = inputFileStatistics.numLoci
 sampleSize = inputFileStatistics.sampleSize
 
 cfg = configClass()
+cfg.fileName = fileName
 cfg.numLoci = numLoci
 cfg.sampleSize = sampleSize
 train.set_size(cfg)
@@ -333,7 +334,6 @@ if __name__ == "__main__":
         with open(path, "w") as file:
             for result in results:
                 file.write("\t".join(map(str, result)) + "\n")
-        print(f"Wrote all population stats to {path}")
 
     def load_all_pop_statistics(path):
         return pd.read_csv(
@@ -345,14 +345,11 @@ if __name__ == "__main__":
 
     def ensure_all_pop_stats(path):
         if os.path.exists(path):
-            print(f"Using existing all population stats: {path}")
-            print("Simulation and summary statistics time: 0.00 seconds (reused existing file)")
             return 0.0
         simulation_start = time.time()
         results = generate_all_pop_results()
         write_all_pop_stats(results, path)
         simulation_elapsed = time.time() - simulation_start
-        print(f"Simulation and summary statistics time: {simulation_elapsed:.2f} seconds")
         return simulation_elapsed
 
     if args.mode == "train":

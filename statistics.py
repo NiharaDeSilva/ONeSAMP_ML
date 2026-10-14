@@ -215,19 +215,21 @@ class statisticsClass:
         self.sampleSize = self.data.shape[0]
 
 
-    def filterMonomorphicLoci(self):
+    def filterMonomorphicLoci(self, verbose=True):
         data = self.data
         deleteCol = []
         for i in range(self.numLoci):
             temp = data[:,i,:]
             if len(np.unique(temp)) == 1:
                 deleteCol.append(i)
-        print(deleteCol)
+        if verbose:
+            print(deleteCol)
         if len(deleteCol) != 0:
             newData = np.delete(data, deleteCol, axis = 1)
             self.data = newData
             self.numLoci = self.numLoci - len(deleteCol)
-            print("filter monomorphic loci")
+            if verbose:
+                print("filter monomorphic loci")
 
 
     def get_file_last_line(self, inputfile):
@@ -472,4 +474,3 @@ class statisticsClass:
 
         if (self.DEBUG):
             print("(Expected heterozygosity) stat5 is ", self.stat5)
-

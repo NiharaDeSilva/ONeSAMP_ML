@@ -21,7 +21,7 @@ from sklearn.pipeline import Pipeline
 from xgboost import XGBRegressor
 
 from models.predict import predict_and_evaluate_model
-from config import OUTPUT_PATH
+from config import OUTPUT, OUTPUT_PATH
 
 output_path = OUTPUT_PATH
 MODEL_ORDER = ["RandomForest", "XGBoost", "Lasso", "Ridge"]
@@ -145,6 +145,15 @@ def build_cv_model(model_name, model_constructor):
     return model_constructor()
 
 
+def format_cv_result(model_name, metrics, cv_folds=5):
+    return (
+        f"{model_name} ({cv_folds}-Fold CV) => "
+        f"RMSE: {metrics['rmse_mean']:.4f} ± {metrics['rmse_std']:.4f}, "
+        f"MAE: {metrics['mae_mean']:.4f} ± {metrics['mae_std']:.4f}, "
+        f"R²: {metrics['r2_mean']:.4f} ± {metrics['r2_std']:.4f}"
+    )
+
+
 def get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=None):
     kf = KFold(n_splits=cv_folds, shuffle=True, random_state=42)
     scoring = {
@@ -174,13 +183,6 @@ def get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=None):
             "r2_mean": float(r2.mean()),
             "r2_std": float(r2.std()),
         }
-
-        print(
-            f"{name} ({cv_folds}-Fold CV) => "
-            f"RMSE: {rmse.mean():.4f} ± {rmse.std():.4f}, "
-            f"MAE: {mae.mean():.4f} ± {mae.std():.4f}, "
-            f"R²: {r2.mean():.4f} ± {r2.std():.4f}"
-        )
 
     return results
 
@@ -272,7 +274,7 @@ def _run_single_model_task(task):
 
     result["log_text"] = log_buffer.getvalue()
 
-    # optional: keep individual model log too
+    # Keep a temporary model log until the combined report is saved.
     with open(os.path.join(model_dir, "train.log"), "w") as f:
         f.write(result["log_text"])
 
@@ -283,11 +285,11 @@ def write_combined_training_report(
     run_dir,
     results,
     ordered_model_names,
+    summary_txt,
     model_training_elapsed_seconds=None,
     simulation_elapsed_seconds=0.0,
     cross_validation_seconds=0.0,
 ):
-    summary_txt = os.path.join(run_dir, "training_summary.txt")
     summary_json = os.path.join(run_dir, "training_metrics.json")
     total_elapsed_seconds = None
     if model_training_elapsed_seconds is not None:
@@ -347,7 +349,6 @@ def write_combined_training_report(
                 if key in r["timings"]:
                     line = f"{label}: {r['timings'][key]:.2f} seconds"
                     f.write(line + "\n")
-                    print(f"{model_name} - {line}")
 
             if r["metrics"] is not None:
                 m = r["metrics"]
@@ -369,6 +370,17 @@ def write_combined_training_report(
     with open(summary_json, "w") as f:
         json.dump(serializable, f, indent=2)
 
+    # Discard per-model copies only after both combined reports are saved.
+    for model_name in ordered_model_names:
+        if model_name not in results:
+            continue
+        model_dir = results[model_name]["model_dir"]
+        for filename in ("metrics.txt", "train.log"):
+            try:
+                os.remove(os.path.join(model_dir, filename))
+            except FileNotFoundError:
+                pass
+
 
 # -----------------------------------
 # Run Model Training
@@ -387,6 +399,8 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
     target_col = 'Ne'
 
     run_dir = make_run_dir(cfg)
+    report_name = os.path.splitext(os.path.basename(cfg.fileName))[0]
+    summary_txt = os.path.join(ensure_dir(OUTPUT), report_name)
 
     Z = np.array(inputStatsList[feature_cols].astype(float).to_numpy())
 
@@ -402,9 +416,9 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
     cv_start = time.perf_counter()
     cv_results = get_cv_results_all_models(X_train, y_train, cv_folds=5, model_names=selected_model_names)
     cross_validation_seconds = time.perf_counter() - cv_start
-    print(f"Cross-validation time: {cross_validation_seconds:.2f} seconds")
-    with open(os.path.join(run_dir, "cv_results.json"), "w") as f:
-        json.dump(cv_results, f, indent=2)
+    with open(os.path.join(run_dir, "cv_results.txt"), "w", encoding="utf-8") as f:
+        for model_name, metrics in cv_results.items():
+            f.write(format_cv_result(model_name, metrics) + "\n")
 
     # --- Scale only for Lasso / Ridge ---
     scaler = StandardScaler()
@@ -474,6 +488,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
             run_dir,
             results,
             selected_model_names,
+            summary_txt,
             model_training_elapsed,
             simulation_elapsed_seconds,
             cross_validation_seconds,
@@ -503,6 +518,7 @@ def run_model_training(cfg, model_selection, allPopStatistics, inputStatsList, s
         run_dir,
         results,
         selected_model_names,
+        summary_txt,
         model_training_elapsed,
         simulation_elapsed_seconds,
         cross_validation_seconds,
